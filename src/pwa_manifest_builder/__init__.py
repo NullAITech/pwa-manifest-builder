@@ -20,9 +20,15 @@ from .models import (
     ShortcutSpec,
     ShareTargetSpec,
     ProtocolHandlerSpec,
+    FileHandlerSpec,
     ShortcutSimulatorResult,
     ShortcutSuiteReport,
     ProtocolHandlerValidationReport,
+    ShareTargetValidationReport,
+    FileHandlerItem,
+    FileHandlerValidationReport,
+    ShareSimulationResult,
+    FileLaunchSimulationResult,
     PWAValidationIssue,
     PWAValidationReport,
 )
@@ -32,6 +38,14 @@ from .shortcuts_simulator import (
     simulate_app_shortcuts,
     validate_protocol_handlers,
     is_valid_protocol_scheme,
+)
+
+# Web Share Target & File Handling APIs
+from .share_and_file_handlers import (
+    validate_share_target,
+    validate_file_handlers,
+    simulate_web_share,
+    simulate_file_launch,
 )
 
 # Manifest Generation
@@ -114,15 +128,26 @@ __all__ = [
     "ShortcutSpec",
     "ShareTargetSpec",
     "ProtocolHandlerSpec",
+    "FileHandlerSpec",
     "ShortcutSimulatorResult",
     "ShortcutSuiteReport",
     "ProtocolHandlerValidationReport",
+    "ShareTargetValidationReport",
+    "FileHandlerItem",
+    "FileHandlerValidationReport",
+    "ShareSimulationResult",
+    "FileLaunchSimulationResult",
     "PWAValidationIssue",
     "PWAValidationReport",
     # Shortcuts & Protocols
     "simulate_app_shortcuts",
     "validate_protocol_handlers",
     "is_valid_protocol_scheme",
+    # Web Share Target & File Handlers
+    "validate_share_target",
+    "validate_file_handlers",
+    "simulate_web_share",
+    "simulate_file_launch",
     # Manifest
     "generate_manifest_dict",
     "generate_manifest_json",

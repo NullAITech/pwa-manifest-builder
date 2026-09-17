@@ -739,6 +739,7 @@
           <button class="tab-btn" data-tab="tab-scope">Scope & URLs</button>
           <button class="tab-btn" data-tab="tab-sw">ServiceWorker</button>
           <button class="tab-btn" data-tab="tab-icons">Icon Forge</button>
+          <button class="tab-btn" data-tab="tab-caps">Capabilities</button>
         </div>
 
         <!-- Tab 1: Basic Info -->
@@ -883,6 +884,77 @@
           </div>
         </div>
 
+        <!-- Tab 6: Capabilities (Share & Files) -->
+        <div class="tab-content" id="tab-caps" style="display:none;">
+          <div style="font-size:12px; font-weight:700; color:var(--md-sys-color-primary); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+            Web Share Target API
+          </div>
+          <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="enableShareTarget" checked style="width:16px; height:16px;">
+            <label for="enableShareTarget" style="margin:0; cursor:pointer;">Enable Web Share Target</label>
+          </div>
+          <div class="form-group">
+            <label for="shareAction">Share Action URL</label>
+            <input type="text" id="shareAction" class="form-control" value="/share">
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label for="shareMethod">HTTP Method</label>
+              <select id="shareMethod" class="form-control">
+                <option value="GET" selected>GET</option>
+                <option value="POST">POST</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="shareEnctype">Enctype</label>
+              <select id="shareEnctype" class="form-control">
+                <option value="application/x-www-form-urlencoded" selected>urlencoded</option>
+                <option value="multipart/form-data">multipart/form-data</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="shareParamsTitle">Title Param</label>
+            <input type="text" id="shareParamsTitle" class="form-control" value="title">
+          </div>
+          <div class="form-group">
+            <label for="shareParamsText">Text Param</label>
+            <input type="text" id="shareParamsText" class="form-control" value="text">
+          </div>
+          <div class="form-group">
+            <label for="shareParamsUrl">URL Param</label>
+            <input type="text" id="shareParamsUrl" class="form-control" value="url">
+          </div>
+          <div class="form-group" style="margin-top:16px;">
+            <div style="font-size:12px; font-weight:700; color:var(--md-sys-color-primary); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+              File Handling API (launchQueue)
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <input type="checkbox" id="enableFileHandlers" checked style="width:16px; height:16px;">
+              <label for="enableFileHandlers" style="margin:0; cursor:pointer;">Enable File Handlers</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="fhAction">File Action URL</label>
+            <input type="text" id="fhAction" class="form-control" value="/open">
+          </div>
+          <div class="form-group">
+            <label for="fhName">Association Name</label>
+            <input type="text" id="fhName" class="form-control" value="Text Document">
+          </div>
+          <div class="form-group">
+            <label for="fhAccept">MIME & Extensions</label>
+            <input type="text" id="fhAccept" class="form-control" value="text/plain: .txt, .md">
+          </div>
+          <div class="form-group">
+            <label for="fhLaunchType">Launch Mode</label>
+            <select id="fhLaunchType" class="form-control">
+              <option value="single-client" selected>single-client (reuse window)</option>
+              <option value="multiple-clients">multiple-clients (new window)</option>
+            </select>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -961,6 +1033,8 @@
           <button class="tab-btn" data-code-tab="code-sw">sw.js</button>
           <button class="tab-btn" data-code-tab="code-head">index.html &lt;head&gt;</button>
           <button class="tab-btn" data-code-tab="code-offline">offline.html</button>
+          <button class="tab-btn" data-code-tab="code-share">share-receiver.js</button>
+          <button class="tab-btn" data-code-tab="code-files">file-handler.js</button>
         </div>
         <pre class="code-editor-box" id="codeOutputBox"></pre>
       </div>
@@ -1313,14 +1387,31 @@
     });
 
     // Live update listeners
+    const enableShareTarget = document.getElementById('enableShareTarget');
+    const shareAction = document.getElementById('shareAction');
+    const shareMethod = document.getElementById('shareMethod');
+    const shareEnctype = document.getElementById('shareEnctype');
+    const shareParamsTitle = document.getElementById('shareParamsTitle');
+    const shareParamsText = document.getElementById('shareParamsText');
+    const shareParamsUrl = document.getElementById('shareParamsUrl');
+
+    const enableFileHandlers = document.getElementById('enableFileHandlers');
+    const fhAction = document.getElementById('fhAction');
+    const fhName = document.getElementById('fhName');
+    const fhAccept = document.getElementById('fhAccept');
+    const fhLaunchType = document.getElementById('fhLaunchType');
+
     [appName, appShortName, appDesc, displayMode, orientationMode, startUrl, scopeUrl,
-     shortcutTitle, shortcutUrl, swCacheName, swCacheVer, swStrategy, precacheAssets, iconGlyph, iconFgColor].forEach(el => {
-      el.addEventListener('input', updateAll);
+     shortcutTitle, shortcutUrl, swCacheName, swCacheVer, swStrategy, precacheAssets, iconGlyph, iconFgColor,
+     enableShareTarget, shareAction, shareMethod, shareEnctype, shareParamsTitle, shareParamsText, shareParamsUrl,
+     enableFileHandlers, fhAction, fhName, fhAccept, fhLaunchType].forEach(el => {
+      if (el) el.addEventListener('input', updateAll);
+      if (el) el.addEventListener('change', updateAll);
     });
 
     function buildCurrentManifest() {
       const glyph = iconGlyph.value.trim() || appName.value.trim().slice(0, 1) || 'P';
-      return {
+      const m = {
         name: appName.value,
         short_name: appShortName.value || appName.value.slice(0, 12),
         description: appDesc.value,
@@ -1361,6 +1452,40 @@
           }
         ]
       };
+
+      if (enableShareTarget && enableShareTarget.checked) {
+        m.share_target = {
+          action: shareAction.value || "/share",
+          method: shareMethod.value || "GET",
+          enctype: shareEnctype.value || "application/x-www-form-urlencoded",
+          params: {
+            title: shareParamsTitle.value || "title",
+            text: shareParamsText.value || "text",
+            url: shareParamsUrl.value || "url"
+          }
+        };
+      }
+
+      if (enableFileHandlers && enableFileHandlers.checked) {
+        const acceptRaw = fhAccept.value || "text/plain: .txt";
+        const acceptObj = {};
+        acceptRaw.split(";").forEach(part => {
+          if (part.includes(":")) {
+            const [mime, exts] = part.split(":");
+            acceptObj[mime.trim()] = exts.split(",").map(e => e.trim()).filter(Boolean);
+          }
+        });
+        m.file_handlers = [
+          {
+            action: fhAction.value || "/open",
+            name: fhName.value || "Document",
+            accept: Object.keys(acceptObj).length ? acceptObj : { "text/plain": [".txt"] },
+            launch_type: fhLaunchType.value || "single-client"
+          }
+        ];
+      }
+
+      return m;
     }
 
     function buildCurrentServiceWorker() {
@@ -1470,6 +1595,69 @@ self.addEventListener('fetch', (event) => {
 </html>`;
     }
 
+    function buildShareReceiverScript() {
+      const isPost = (shareMethod.value || 'GET') === 'POST';
+      const action = shareAction.value || '/share';
+      if (!isPost) {
+        return `// Web Share Target GET Receiver Handler
+// Place in your share destination page script (${action})
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const sharedData = {
+    title: params.get('${shareParamsTitle.value || "title"}'),
+    text: params.get('${shareParamsText.value || "text"}'),
+    url: params.get('${shareParamsUrl.value || "url"}')
+  };
+  
+  if (sharedData.title || sharedData.text || sharedData.url) {
+    console.info('[PWA Share Target] Received shared data:', sharedData);
+    if (typeof handleIncomingShare === 'function') {
+      handleIncomingShare(sharedData);
+    }
+  }
+});`;
+      } else {
+        return `// Web Share Target POST ServiceWorker Handler
+// Include in sw.js to intercept POST shares to ${action}
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  if (event.request.method === 'POST' && url.pathname === '${action}') {
+    event.respondWith((async () => {
+      try {
+        const formData = await event.request.formData();
+        console.info('[PWA Share Target] Received multipart/form-data share');
+        return Response.redirect('${action}?shared=true', 303);
+      } catch (err) {
+        console.error('[PWA Share Target] Failed to parse share payload:', err);
+        return Response.redirect('${action}?share_error=true', 303);
+      }
+    })());
+  }
+});`;
+      }
+    }
+
+    function buildFileHandlerScript() {
+      return `// W3C File Handling API Consumer Implementation
+// Add to your main application script
+if ('launchQueue' in window && 'files' in LaunchParams.prototype) {
+  launchQueue.setConsumer(async (launchParams) => {
+    if (!launchParams.files || !launchParams.files.length) return;
+    console.info(\`[PWA FileHandler] Opened \${launchParams.files.length} file handle(s).\`);
+    
+    for (const fileHandle of launchParams.files) {
+      const file = await fileHandle.getFile();
+      console.info('[PWA FileHandler] File name:', file.name, 'size:', file.size, 'type:', file.type);
+      if (typeof onPWAFileOpened === 'function') {
+        onPWAFileOpened(file, fileHandle);
+      }
+    }
+  });
+} else {
+  console.info('[PWA FileHandler] File Handling API not supported on this platform.');
+}`;
+    }
+
     function renderCode() {
       if (currentCodeTab === 'code-manifest') {
         codeOutputBox.textContent = JSON.stringify(buildCurrentManifest(), null, 2);
@@ -1479,6 +1667,10 @@ self.addEventListener('fetch', (event) => {
         codeOutputBox.textContent = buildCurrentHeadTags();
       } else if (currentCodeTab === 'code-offline') {
         codeOutputBox.textContent = buildCurrentOfflineHtml();
+      } else if (currentCodeTab === 'code-share') {
+        codeOutputBox.textContent = buildShareReceiverScript();
+      } else if (currentCodeTab === 'code-files') {
+        codeOutputBox.textContent = buildFileHandlerScript();
       }
     }
 

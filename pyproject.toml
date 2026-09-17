@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pwa-manifest-builder"
 version = "1.0.0"
-description = "High-performance PWA manifest & ServiceWorker generator, icon forge, installability linter, MCP server & Material 3 studio UI."
+description = "High-performance PWA manifest & ServiceWorker generator, Web Share Target & File Handling API validator, icon forge, installability linter, MCP server & Material 3 studio UI."
 readme = "README.md"
 authors = [
     { name = "PWA Studio Team", email = "pwa-studio@example.com" }
@@ -16,12 +16,20 @@ keywords = [
     "pwa",
     "progressive-web-apps",
     "webmanifest",
+    "manifest-generator",
     "serviceworker",
     "service-worker",
-    "mcp",
+    "web-share-target",
+    "file-handling-api",
+    "launch-queue",
+    "protocol-handlers",
+    "app-shortcuts",
     "icon-forge",
     "lighthouse",
     "material3",
+    "mcp",
+    "model-context-protocol",
+    "offline-first",
     "w3c"
 ]
 classifiers = [

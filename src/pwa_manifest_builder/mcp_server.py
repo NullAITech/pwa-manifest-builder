@@ -407,6 +407,101 @@ REGISTERED_TOOLS: List[Dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "pwa_validate_share_target",
+        "description": "Validate W3C Web Share Target API configuration (action, method, enctype, params) and synthesize client or ServiceWorker receiver code.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "share_target": {
+                    "type": "object",
+                    "description": "Share target specification ({action, method, enctype, params})",
+                },
+                "manifest": {
+                    "type": "object",
+                    "description": "Full manifest dictionary containing 'share_target'",
+                },
+                "scope": {
+                    "type": "string",
+                    "default": "/",
+                    "description": "Manifest scope boundary",
+                },
+            },
+        },
+    },
+    {
+        "name": "pwa_validate_file_handlers",
+        "description": "Validate W3C File Handling API entries (action, accept MIME/exts, launch_type) and generate launchQueue.setConsumer() script.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "file_handlers": {
+                    "type": "array",
+                    "description": "Array of file handler objects ({action, accept, name, launch_type})",
+                },
+                "manifest": {
+                    "type": "object",
+                    "description": "Full manifest dictionary containing 'file_handlers'",
+                },
+                "scope": {
+                    "type": "string",
+                    "default": "/",
+                    "description": "Manifest scope boundary",
+                },
+            },
+        },
+    },
+    {
+        "name": "pwa_simulate_share",
+        "description": "Simulate an incoming Web Share action against a share_target definition with title, text, url, and files.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "share_target": {
+                    "type": "object",
+                    "description": "Share target specification ({action, method, enctype, params})",
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Title payload to share",
+                },
+                "text": {
+                    "type": "string",
+                    "description": "Text body payload to share",
+                },
+                "url": {
+                    "type": "string",
+                    "description": "URL payload to share",
+                },
+                "files": {
+                    "type": "array",
+                    "description": "Array of mock files ({name, type, size}) to share",
+                },
+            },
+        },
+    },
+    {
+        "name": "pwa_simulate_file_open",
+        "description": "Simulate an OS file open event dispatched to the PWA via the File Handling API.",
+        "inputSchema": {
+            "type": "object",
+            "required": ["file_name"],
+            "properties": {
+                "file_handlers": {
+                    "type": "array",
+                    "description": "Array of file handlers or manifest",
+                },
+                "file_name": {
+                    "type": "string",
+                    "description": "File name to open (e.g. document.txt, image.png)",
+                },
+                "mime_type": {
+                    "type": "string",
+                    "description": "Optional MIME type override",
+                },
+            },
+        },
+    },
 ]
 
 
@@ -431,6 +526,12 @@ REGISTERED_RESOURCES: List[Dict[str, Any]] = [
         "uri": "pwa://specs/serviceworker-strategies",
         "name": "ServiceWorker Offline Caching Strategies Guide",
         "description": "Reference guide for offline caching strategies (cache-first, network-first, stale-while-revalidate), precaching, and eviction policies.",
+        "mimeType": "text/markdown",
+    },
+    {
+        "uri": "pwa://specs/share-and-file-handling",
+        "name": "Web Share Target & File Handling APIs Specification Guide",
+        "description": "Reference guide for W3C Web Share Target API (GET/POST, multipart payloads) and File Handling API (launchQueue consumers, MIME mappings).",
         "mimeType": "text/markdown",
     },
 ]
@@ -507,6 +608,42 @@ ServiceWorkers intercept network requests via the `fetch` event listener and orc
 - **Offline Fallback**: Precache `/offline.html` to guarantee a branded offline experience when offline.
 """,
     ),
+    "pwa://specs/share-and-file-handling": (
+        "text/markdown",
+        """# Web Share Target & File Handling APIs Reference
+
+## 1. Web Share Target API
+Allows your PWA to register as a share target in the operating system's native share dialog (via `navigator.share`).
+
+### Schema Keys:
+- **`action`**: Target URL that handles the share (must resolve within manifest `scope`).
+- **`method`**: `'GET'` or `'POST'`.
+- **`enctype`**: `'application/x-www-form-urlencoded'` (default) or `'multipart/form-data'` (mandatory when receiving files).
+- **`params`**: Object mapping `{ title, text, url, files }` to query parameter or form field names.
+- **`params.files`**: Object or array of objects with `{ name, accept }` specifying form field name and accepted MIME types or file extensions.
+
+## 2. File Handling API
+Allows your PWA to register as an OS file handler in Windows Explorer, macOS Finder, or Linux file managers.
+
+### Schema Keys:
+- **`action`**: Target URL that opens when a file is double-clicked or opened with the PWA.
+- **`name`**: Human-readable label for file type associations.
+- **`accept`**: Map of MIME types to arrays of file extensions, e.g. `{"text/plain": [".txt", ".md"], "image/png": [".png"]}`.
+- **`launch_type`**: `'single-client'` (reuses existing window) or `'multiple-clients'` (opens separate window per file).
+
+### Client Consumer (`launchQueue`):
+```javascript
+if ('launchQueue' in window && 'files' in LaunchParams.prototype) {
+  launchQueue.setConsumer(async (launchParams) => {
+    for (const fileHandle of launchParams.files) {
+      const file = await fileHandle.getFile();
+      console.log('Opened file:', file.name, file.type);
+    }
+  });
+}
+```
+""",
+    ),
 }
 
 
@@ -548,6 +685,27 @@ REGISTERED_PROMPTS: List[Dict[str, Any]] = [
             {
                 "name": "offline_priority",
                 "description": "Offline priority level (critical full offline, partial fallback, read-only offline)",
+                "required": False,
+            },
+        ],
+    },
+    {
+        "name": "pwa_share_and_file_handler_prompt",
+        "description": "Interactive guidance prompt for integrating Web Share Target and OS File Handling APIs into a PWA.",
+        "arguments": [
+            {
+                "name": "app_name",
+                "description": "Name of the application",
+                "required": True,
+            },
+            {
+                "name": "file_extensions",
+                "description": "Comma-separated file extensions to handle (e.g. .txt,.md,.json,.png)",
+                "required": False,
+            },
+            {
+                "name": "supports_share_files",
+                "description": "Whether to accept incoming shared files (true/false)",
                 "required": False,
             },
         ],
@@ -834,6 +992,38 @@ def _execute_tool(name: str, args: Dict[str, Any]) -> Tuple[str, bool]:
             report = validate_protocol_handlers(handlers, scope=scope)
             return json.dumps(report.to_dict(), indent=2), False
 
+        elif name == "pwa_validate_share_target":
+            from .share_and_file_handlers import validate_share_target
+            target = args.get("share_target") or args.get("manifest") or {}
+            scope = args.get("scope", "/")
+            report = validate_share_target(target, scope=scope)
+            return json.dumps(report.to_dict(), indent=2), False
+
+        elif name == "pwa_validate_file_handlers":
+            from .share_and_file_handlers import validate_file_handlers
+            handlers = args.get("file_handlers") or args.get("manifest") or []
+            scope = args.get("scope", "/")
+            report = validate_file_handlers(handlers, scope=scope)
+            return json.dumps(report.to_dict(), indent=2), False
+
+        elif name == "pwa_simulate_share":
+            from .share_and_file_handlers import simulate_web_share
+            target = args.get("share_target") or {}
+            title = args.get("title")
+            text = args.get("text")
+            url = args.get("url")
+            files = args.get("files")
+            sim_res = simulate_web_share(target, title=title, text=text, url=url, files=files)
+            return json.dumps(sim_res.to_dict(), indent=2), False
+
+        elif name == "pwa_simulate_file_open":
+            from .share_and_file_handlers import simulate_file_launch
+            handlers = args.get("file_handlers") or []
+            file_name = args.get("file_name", "")
+            mime_type = args.get("mime_type")
+            sim_res = simulate_file_launch(handlers, file_name=file_name, mime_type=mime_type)
+            return json.dumps(sim_res.to_dict(), indent=2), False
+
         else:
             return f"Unknown tool: {name}", True
 
@@ -1109,6 +1299,36 @@ Compare tradeoffs between Cache-First, Network-First, and Stale-While-Revalidate
                 "id": req_id,
                 "result": {
                     "description": "ServiceWorker Offline Strategy Consultation",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": {
+                                "type": "text",
+                                "text": prompt_body,
+                            },
+                        }
+                    ],
+                },
+            }
+
+        elif prompt_name == "pwa_share_and_file_handler_prompt":
+            app_name = prompt_args.get("app_name", "My App")
+            exts = prompt_args.get("file_extensions", ".txt,.md")
+            share_files = prompt_args.get("supports_share_files", "true")
+
+            prompt_body = f"""You are a Web Capabilities & PWA Architect. Configure the W3C Web Share Target and File Handling APIs for '{app_name}'.
+
+Requirements:
+1. File Handlers: Register associations for extensions [{exts}], configure single-client vs multiple-clients mode, and draft the launchQueue consumer JavaScript snippet.
+2. Web Share Target: Define manifest.webmanifest 'share_target' schema (action, method POST, enctype multipart/form-data) supporting file sharing ({share_files}), and draft the ServiceWorker fetch interceptor to persist incoming shared payloads."""
+
+            if is_notification:
+                return None
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "description": f"Share Target & File Handling Setup for {app_name}",
                     "messages": [
                         {
                             "role": "user",

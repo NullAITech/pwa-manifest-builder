@@ -1114,6 +1114,210 @@ def cmd_protocol(args: argparse.Namespace, color_ok: bool) -> int:
     return 0 if report.is_valid or len(handlers) == 0 else 1
 
 
+def cmd_share_target(args: argparse.Namespace, color_ok: bool) -> int:
+    """Validate Web Share Target configuration, simulate share payloads, and emit receiver scripts."""
+    from .share_and_file_handlers import validate_share_target, simulate_web_share
+    from .catalog import get_template
+
+    target = getattr(args, "target", None)
+    template_id = getattr(args, "template", None) or (target if target in TEMPLATES else None)
+    manifest_file = getattr(args, "manifest", None) or getattr(args, "file", None) or (target if target and Path(target).is_file() else None)
+
+    share_cfg: Dict[str, Any] = {}
+    scope = getattr(args, "scope", "/") or "/"
+
+    if getattr(args, "action", None):
+        params_dict = {}
+        if getattr(args, "title_param", None):
+            params_dict["title"] = args.title_param
+        if getattr(args, "text_param", None):
+            params_dict["text"] = args.text_param
+        if getattr(args, "url_param", None):
+            params_dict["url"] = args.url_param
+        if getattr(args, "files_param", None):
+            params_dict["files"] = {"name": args.files_param, "accept": getattr(args, "accept", "*/*")}
+
+        share_cfg = {
+            "action": args.action,
+            "method": getattr(args, "method", "GET") or "GET",
+            "enctype": getattr(args, "enctype", "application/x-www-form-urlencoded") or "application/x-www-form-urlencoded",
+            "params": params_dict or {"title": "title", "text": "text", "url": "url"},
+        }
+    elif manifest_file:
+        data = read_json_safe(manifest_file)
+        if isinstance(data, dict):
+            share_cfg = data.get("share_target", {})
+            scope = data.get("scope", scope)
+    elif template_id:
+        tmpl = get_template(template_id)
+        if tmpl and tmpl.manifest and tmpl.manifest.share_target:
+            st = tmpl.manifest.share_target
+            share_cfg = st.to_dict() if hasattr(st, "to_dict") else st
+            scope = tmpl.manifest.scope or scope
+
+    if not share_cfg:
+        share_cfg = {
+            "action": "/share",
+            "method": "GET",
+            "params": {"title": "title", "text": "text", "url": "url"}
+        }
+
+    report = validate_share_target(share_cfg, scope=scope)
+
+    if getattr(args, "simulate", False):
+        sim_title = getattr(args, "share_title", "Sample Share Title")
+        sim_text = getattr(args, "share_text", "Check out this link!")
+        sim_url = getattr(args, "share_url", "https://example.com/item")
+        sim_files = None
+        if getattr(args, "share_file", None):
+            sim_files = [{"name": args.share_file, "type": "image/png", "size": 2048}]
+
+        sim_res = simulate_web_share(share_cfg, title=sim_title, text=sim_text, url=sim_url, files=sim_files)
+        if getattr(args, "json", False):
+            print(json.dumps(sim_res.to_dict(), indent=2))
+            return 0
+
+        print(f"\n{colorize('--- Web Share Target Simulation ---', Color.BOLD + Color.CYAN, color_ok)}")
+        match_str = colorize('MATCHED', Color.GREEN, color_ok) if sim_res.matched else colorize('FAILED', Color.RED, color_ok)
+        print(f"Status           : {match_str}")
+        print(f"Target Action    : {sim_res.target_action} [{sim_res.method}]")
+        print(f"Simulated Request: {colorize(sim_res.simulated_url, Color.BRIGHT_WHITE, color_ok)}")
+        if sim_res.query_params:
+            print(f"Query Parameters : {json.dumps(sim_res.query_params)}")
+        if sim_res.form_fields:
+            print(f"Form Fields      : {json.dumps(sim_res.form_fields)}")
+        if sim_res.files_payload:
+            print(f"Files Payload    : {json.dumps(sim_res.files_payload)}")
+        return 0 if sim_res.matched else 1
+
+    if getattr(args, "json", False):
+        print(json.dumps(report.to_dict(), indent=2))
+        return 0
+
+    print(f"\n{colorize('--- Web Share Target API Audit ---', Color.BOLD + Color.CYAN, color_ok)}")
+    status_str = colorize('VALID', Color.GREEN, color_ok) if report.is_valid else colorize('INVALID', Color.RED, color_ok)
+    print(f"Compliance Status : {status_str}")
+    print(f"Action URL        : {report.action or '(none)'}")
+    print(f"HTTP Method       : {report.method}")
+    print(f"Enctype           : {report.enctype}")
+    print(f"Supports Files    : {colorize('Yes', Color.GREEN, color_ok) if report.supports_files else 'No'}")
+    if report.accepted_file_types:
+        print(f"Accepted Types    : {', '.join(report.accepted_file_types)}")
+
+    if report.errors:
+        print(f"\n{colorize('Errors:', Color.RED, color_ok)}")
+        for err in report.errors:
+            print(f"  ✖ {err}")
+
+    if report.warnings:
+        print(f"\n{colorize('Warnings:', Color.YELLOW, color_ok)}")
+        for warn in report.warnings:
+            print(f"  • {warn}")
+
+    if getattr(args, "output", None):
+        atomic_write_text(args.output, report.receiver_script)
+        print(f"\n{colorize('✔ Saved receiver script to:', Color.GREEN, color_ok)} {args.output}")
+    elif getattr(args, "script", False):
+        print(f"\n{colorize('Receiver Script:', Color.BOLD, color_ok)}")
+        print(report.receiver_script)
+
+    return 0 if report.is_valid else 1
+
+
+def cmd_file_handlers(args: argparse.Namespace, color_ok: bool) -> int:
+    """Validate File Handling API entries, simulate OS file launches, and emit launchQueue scripts."""
+    from .share_and_file_handlers import validate_file_handlers, simulate_file_launch
+    from .catalog import get_template
+
+    target = getattr(args, "target", None)
+    template_id = getattr(args, "template", None) or (target if target in TEMPLATES else None)
+    manifest_file = getattr(args, "manifest", None) or getattr(args, "file", None) or (target if target and Path(target).is_file() else None)
+
+    handlers = []
+    scope = getattr(args, "scope", "/") or "/"
+
+    if getattr(args, "action", None):
+        raw_accept = getattr(args, "accept", "text/plain:.txt") or "text/plain:.txt"
+        accept_dict: Dict[str, List[str]] = {}
+        for part in raw_accept.split(";"):
+            if ":" in part:
+                mime, exts = part.split(":", 1)
+                accept_dict[mime.strip()] = [e.strip() for e in exts.split(",") if e.strip()]
+        handlers = [{
+            "action": args.action,
+            "name": getattr(args, "name", "App Document"),
+            "accept": accept_dict,
+            "launch_type": getattr(args, "launch_type", "single-client") or "single-client",
+        }]
+    elif manifest_file:
+        data = read_json_safe(manifest_file)
+        if isinstance(data, dict):
+            handlers = data.get("file_handlers", [])
+            scope = data.get("scope", scope)
+    elif template_id:
+        tmpl = get_template(template_id)
+        if tmpl and tmpl.manifest and tmpl.manifest.file_handlers:
+            handlers = [h.to_dict() if hasattr(h, "to_dict") else h for h in tmpl.manifest.file_handlers]
+            scope = tmpl.manifest.scope or scope
+
+    report = validate_file_handlers(handlers, scope=scope)
+
+    if getattr(args, "simulate", None):
+        sim_file = args.simulate
+        sim_mime = getattr(args, "mime_type", None)
+        sim_res = simulate_file_launch(handlers, file_name=sim_file, mime_type=sim_mime)
+        if getattr(args, "json", False):
+            print(json.dumps(sim_res.to_dict(), indent=2))
+            return 0
+
+        print(f"\n{colorize('--- OS File Handling Simulation ---', Color.BOLD + Color.CYAN, color_ok)}")
+        match_str = colorize('HANDLED', Color.GREEN, color_ok) if sim_res.handled else colorize('UNHANDLED', Color.RED, color_ok)
+        print(f"File Open Status  : {match_str}")
+        print(f"File Name         : {sim_res.file_name}")
+        print(f"MIME Type         : {sim_res.mime_type}")
+        print(f"Matched Route     : {sim_res.matched_action or '(none)'}")
+        print(f"Launch Type       : {sim_res.launch_type or '(none)'}")
+        if sim_res.issues:
+            print(f"\n{colorize('Issues:', Color.YELLOW, color_ok)}")
+            for iss in sim_res.issues:
+                print(f"  • {iss}")
+        return 0 if sim_res.handled else 1
+
+    if getattr(args, "json", False):
+        print(json.dumps(report.to_dict(), indent=2))
+        return 0
+
+    print(f"\n{colorize('--- File Handling API Audit ---', Color.BOLD + Color.CYAN, color_ok)}")
+    status_str = colorize('VALID', Color.GREEN, color_ok) if report.is_valid else colorize('INVALID', Color.RED, color_ok)
+    print(f"Compliance Status : {status_str} ({report.valid_count} valid, {report.invalid_count} invalid)")
+
+    if report.errors:
+        print(f"\n{colorize('Errors:', Color.RED, color_ok)}")
+        for err in report.errors:
+            print(f"  ✖ {err}")
+
+    if report.warnings:
+        print(f"\n{colorize('Warnings:', Color.YELLOW, color_ok)}")
+        for warn in report.warnings:
+            print(f"  • {warn}")
+
+    print(f"\n{colorize('Registered Handlers:', Color.BOLD, color_ok)}")
+    for h in report.handlers:
+        h_dict = h.to_dict() if hasattr(h, "to_dict") else h
+        st = colorize('OK', Color.GREEN, color_ok) if h_dict['is_valid'] else colorize('ERR', Color.RED, color_ok)
+        print(f"  • {h_dict['name'] or 'File Handler'}: {h_dict['action']} [{h_dict['launch_type']}] [{st}]")
+        print(f"    Extensions: {', '.join(h_dict['extensions']) or '(none)'}")
+
+    if getattr(args, "output", None):
+        atomic_write_text(args.output, report.launch_queue_script)
+        print(f"\n{colorize('✔ Saved launchQueue script to:', Color.GREEN, color_ok)} {args.output}")
+    elif getattr(args, "script", False):
+        print(f"\n{colorize('LaunchQueue Consumer JavaScript:', Color.BOLD, color_ok)}")
+        print(report.launch_queue_script)
+
+    return 0 if report.is_valid or len(handlers) == 0 else 1
+
+
 # ============================================================================
 # Internal Self-Verification Test Runner
 # ============================================================================
@@ -1196,7 +1400,7 @@ def cmd_test(args: argparse.Namespace, color_ok: bool) -> int:
         tools_res = handle_jsonrpc_request(tools_req)
         assert isinstance(tools_res, dict)
         tools = tools_res["result"]["tools"]
-        assert len(tools) == 9
+        assert len(tools) == 13
         tool_names = [t["name"] for t in tools]
         assert "pwa_generate_manifest" in tool_names
         assert "pwa_generate_serviceworker" in tool_names
@@ -1207,6 +1411,10 @@ def cmd_test(args: argparse.Namespace, color_ok: bool) -> int:
         assert "pwa_diagnostics" in tool_names
         assert "pwa_simulate_shortcuts" in tool_names
         assert "pwa_validate_protocol_handlers" in tool_names
+        assert "pwa_validate_share_target" in tool_names
+        assert "pwa_validate_file_handlers" in tool_names
+        assert "pwa_simulate_share" in tool_names
+        assert "pwa_simulate_file_open" in tool_names
 
         # 3. Tool call - pwa_generate_manifest
         call_req = {
@@ -1224,7 +1432,7 @@ def cmd_test(args: argparse.Namespace, color_ok: bool) -> int:
         res_list_req = {"jsonrpc": "2.0", "id": 4, "method": "resources/list", "params": {}}
         res_list_res = handle_jsonrpc_request(res_list_req)
         assert isinstance(res_list_res, dict)
-        assert len(res_list_res["result"]["resources"]) == 3
+        assert len(res_list_res["result"]["resources"]) == 4
 
         res_read_req = {"jsonrpc": "2.0", "id": 5, "method": "resources/read", "params": {"uri": "pwa://specs/w3c-manifest"}}
         res_read_res = handle_jsonrpc_request(res_read_req)
@@ -1235,7 +1443,7 @@ def cmd_test(args: argparse.Namespace, color_ok: bool) -> int:
         prompt_list_req = {"jsonrpc": "2.0", "id": 6, "method": "prompts/list", "params": {}}
         prompt_list_res = handle_jsonrpc_request(prompt_list_req)
         assert isinstance(prompt_list_res, dict)
-        assert len(prompt_list_res["result"]["prompts"]) == 2
+        assert len(prompt_list_res["result"]["prompts"]) == 3
 
         prompt_get_req = {"jsonrpc": "2.0", "id": 7, "method": "prompts/get", "params": {"name": "pwa_scaffold_project", "arguments": {"app_name": "Pro App"}}}
         prompt_get_res = handle_jsonrpc_request(prompt_get_req)
@@ -1406,21 +1614,59 @@ def build_parser() -> argparse.ArgumentParser:
     p_proto.add_argument("-o", "--output", help="Save registration script to file")
     p_proto.add_argument("--json", action="store_true", help="Output validation report as JSON")
 
-    # 9. serve
+    # 9. share-target
+    p_share = subparsers.add_parser("share-target", aliases=["share"], parents=[parent_parser], help="Validate Web Share Target API & simulate share events")
+    p_share.add_argument("target", nargs="?", help="Manifest JSON file path or template ID")
+    p_share.add_argument("-m", "--manifest", help="Manifest file path to inspect")
+    p_share.add_argument("--template", help="Template ID preset to test")
+    p_share.add_argument("--action", help="Share target action endpoint (e.g., '/share')")
+    p_share.add_argument("--method", default="GET", choices=["GET", "POST", "get", "post"], help="HTTP method (GET or POST)")
+    p_share.add_argument("--enctype", default="application/x-www-form-urlencoded", help="Form enctype (e.g., multipart/form-data)")
+    p_share.add_argument("--title-param", help="Field name for shared title")
+    p_share.add_argument("--text-param", help="Field name for shared text")
+    p_share.add_argument("--url-param", help="Field name for shared URL")
+    p_share.add_argument("--files-param", help="Field name for shared files")
+    p_share.add_argument("--scope", default="/", help="Manifest scope (default: '/')")
+    p_share.add_argument("--simulate", action="store_true", help="Simulate an incoming share action")
+    p_share.add_argument("--share-title", help="Simulated title payload")
+    p_share.add_argument("--share-text", help="Simulated text payload")
+    p_share.add_argument("--share-url", help="Simulated URL payload")
+    p_share.add_argument("--share-file", help="Simulated file name payload")
+    p_share.add_argument("--script", action="store_true", help="Print receiver JavaScript / ServiceWorker code")
+    p_share.add_argument("-o", "--output", help="Save receiver script to file")
+    p_share.add_argument("--json", action="store_true", help="Output validation or simulation report as JSON")
+
+    # 10. file-handlers
+    p_fh = subparsers.add_parser("file-handlers", aliases=["files", "file-handler"], parents=[parent_parser], help="Validate File Handling API & simulate OS file launches")
+    p_fh.add_argument("target", nargs="?", help="Manifest JSON file path or template ID")
+    p_fh.add_argument("-m", "--manifest", help="Manifest file path to inspect")
+    p_fh.add_argument("--template", help="Template ID preset to test")
+    p_fh.add_argument("--action", help="File handler action URL (e.g., '/open')")
+    p_fh.add_argument("--name", help="Human-readable file type label")
+    p_fh.add_argument("--accept", help="MIME to extensions map (e.g., 'text/plain:.txt,.md;image/png:.png')")
+    p_fh.add_argument("--launch-type", default="single-client", choices=["single-client", "multiple-clients"], help="Launch mode")
+    p_fh.add_argument("--scope", default="/", help="Manifest scope (default: '/')")
+    p_fh.add_argument("--simulate", help="Simulate opening a file by name (e.g., notes.md, image.png)")
+    p_fh.add_argument("--mime-type", help="MIME type override for simulation")
+    p_fh.add_argument("--script", action="store_true", help="Print LaunchQueue consumer JavaScript snippet")
+    p_fh.add_argument("-o", "--output", help="Save consumer script to file")
+    p_fh.add_argument("--json", action="store_true", help="Output validation or simulation report as JSON")
+
+    # 11. serve
     p_serve = subparsers.add_parser("serve", parents=[parent_parser], help="Launch Google Material 3 PWA Studio Web UI")
     p_serve.add_argument("-p", "--port", type=int, default=8080, help="Port to bind (default: 8080)")
     p_serve.add_argument("-H", "--host", default="127.0.0.1", help="Host interface (default: 127.0.0.1)")
     p_serve.add_argument("--open", action="store_true", help="Automatically open browser on launch")
 
-    # 10. mcp
+    # 12. mcp
     p_mcp = subparsers.add_parser("mcp", parents=[parent_parser], help="Run MCP (Model Context Protocol) server over stdio")
     p_mcp.add_argument("--debug", action="store_true", help="Enable stderr debug logging")
 
-    # 11. diagnostics / doctor / platform
+    # 13. diagnostics / doctor / platform
     p_diag = subparsers.add_parser("diagnostics", aliases=["doctor", "platform"], parents=[parent_parser], help="System diagnostics report")
     p_diag.add_argument("--json", action="store_true", help="Output diagnostics as JSON")
 
-    # 12. test
+    # 14. test
     p_test = subparsers.add_parser("test", parents=[parent_parser], help="Run internal self-verification test suite")
     p_test.add_argument("--verbose", action="store_true", help="Enable verbose failure stacktraces")
     p_test.add_argument("--json", action="store_true", help="Output test results as JSON")
@@ -1472,6 +1718,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_shortcuts(args, color_ok)
     elif subcmd in ["protocol", "protocols"]:
         return cmd_protocol(args, color_ok)
+    elif subcmd in ["share-target", "share"]:
+        return cmd_share_target(args, color_ok)
+    elif subcmd in ["file-handlers", "files", "file-handler"]:
+        return cmd_file_handlers(args, color_ok)
     elif subcmd == "serve":
         return cmd_serve(args, color_ok)
     elif subcmd == "mcp":

@@ -409,6 +409,60 @@ def validate_manifest(
         if p_report.valid_count > 0:
             passed_checks.append(f"App defines {p_report.valid_count} valid URL protocol handler(s).")
 
+    # Web Share Target Audit
+    if raw.get("share_target"):
+        from .share_and_file_handlers import validate_share_target
+        st_report = validate_share_target(raw, scope=raw.get("scope", "/"))
+        if not st_report.is_valid:
+            for st_err in st_report.errors:
+                issues.append(PWAValidationIssue(
+                    severity="error",
+                    code="SHARE_TARGET_INVALID",
+                    message=st_err,
+                    field="share_target",
+                    fix_suggestion="Configure a valid 'action' URL, method ('GET' or 'POST'), and parameter mapping."
+                ))
+                score -= 5
+        else:
+            features = []
+            if st_report.supports_files:
+                features.append("file sharing")
+            features.append(f"{st_report.method} method")
+            passed_checks.append(f"App configures valid Web Share Target ({', '.join(features)}).")
+        for st_warn in st_report.warnings:
+            warnings.append(PWAValidationIssue(
+                severity="warning",
+                code="WARN_SHARE_TARGET",
+                message=st_warn,
+                field="share_target",
+                fix_suggestion="Ensure share target action URL is within manifest scope."
+            ))
+
+    # File Handlers Audit
+    if raw.get("file_handlers"):
+        from .share_and_file_handlers import validate_file_handlers
+        fh_report = validate_file_handlers(raw, scope=raw.get("scope", "/"))
+        if not fh_report.is_valid:
+            for fh_err in fh_report.errors:
+                issues.append(PWAValidationIssue(
+                    severity="error",
+                    code="FILE_HANDLER_INVALID",
+                    message=fh_err,
+                    field="file_handlers",
+                    fix_suggestion="Ensure action is within scope and 'accept' maps MIME types to extensions starting with '.'."
+                ))
+                score -= 5
+        else:
+            passed_checks.append(f"App registers {fh_report.valid_count} valid OS File Handler(s) via File Handling API.")
+        for fh_warn in fh_report.warnings:
+            warnings.append(PWAValidationIssue(
+                severity="warning",
+                code="WARN_FILE_HANDLER",
+                message=fh_warn,
+                field="file_handlers",
+                fix_suggestion="Review file handler scope and overlapping extension registrations."
+            ))
+
     if raw.get("screenshots"):
         passed_checks.append(f"App provides {len(raw['screenshots'])} preview screenshots.")
     else:

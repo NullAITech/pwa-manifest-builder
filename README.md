@@ -161,13 +161,39 @@ pwa-manifest-builder templates
 pwa-manifest-builder templates --category productivity
 ```
 
-### 7. Run MCP Server
+### 7. Web Share Target API Validation & Simulation
+
+```bash
+# Validate Web Share Target configuration
+pwa-manifest-builder share-target --action /share --method POST --enctype multipart/form-data --title-param title --files-param shared_file
+
+# Simulate an incoming share event with title and attachments
+pwa-manifest-builder share-target --action /share --method POST --simulate --share-title "Check this out" --share-file "doc.pdf"
+
+# Generate client-side or ServiceWorker receiver script
+pwa-manifest-builder share-target --action /share --method GET --script
+```
+
+### 8. File Handling API Validation & Launch Simulation
+
+```bash
+# Validate OS file association handlers
+pwa-manifest-builder file-handlers --action /open --name "Markdown Editor" --accept "text/markdown:.md,.markdown"
+
+# Simulate opening a file from the OS file manager
+pwa-manifest-builder file-handlers --action /open --accept "text/markdown:.md" --simulate "notes.md"
+
+# Generate browser launchQueue.setConsumer() script
+pwa-manifest-builder file-handlers --action /open --accept "text/plain:.txt" --script
+```
+
+### 9. Run MCP Server
 
 ```bash
 pwa-manifest-builder mcp
 ```
 
-### 8. System Diagnostics
+### 10. System Diagnostics
 
 ```bash
 pwa-manifest-builder diagnostics
@@ -214,11 +240,17 @@ Add to `.cursor/mcp.json`:
 | Tool Name | Description |
 | :--- | :--- |
 | `pwa_generate_manifest` | Generates a validated W3C Web App Manifest JSON |
-| `pwa_generate_sw` | Synthesizes a production Service Worker script with caching strategies |
+| `pwa_generate_serviceworker` | Synthesizes a production Service Worker script with caching strategies |
 | `pwa_generate_icons` | Generates SVG icons, maskable safe-zone icons, and favicon |
-| `pwa_audit` | Validates a manifest against Lighthouse & W3C installability criteria |
+| `pwa_audit_manifest` | Validates a manifest against Lighthouse & W3C installability criteria |
 | `pwa_list_templates` | Lists all 14+ built-in application templates |
 | `pwa_html_meta_tags` | Generates iOS, Android, and Windows HTML `<head>` tags |
+| `pwa_simulate_shortcuts` | Simulates and audits App Shortcuts action deep-link routing |
+| `pwa_validate_protocol_handlers` | Validates W3C URL Protocol Handlers and generates registration code |
+| `pwa_validate_share_target` | Validates Web Share Target API specs and emits client/SW receiver code |
+| `pwa_validate_file_handlers` | Validates File Handling API mappings and generates launchQueue consumer |
+| `pwa_simulate_share` | Simulates incoming native share actions (title, text, url, files) |
+| `pwa_simulate_file_open` | Simulates OS file open events matched to file_handlers |
 | `pwa_diagnostics` | Returns server, platform, and capability diagnostic info |
 
 ---

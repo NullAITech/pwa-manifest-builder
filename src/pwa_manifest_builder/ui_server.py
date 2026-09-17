@@ -54,6 +54,12 @@ from .icon_forge import (
 from .linter import validate_manifest, is_valid_color
 from .catalog import list_templates, get_template, generate_from_template
 from .shortcuts_simulator import simulate_app_shortcuts, validate_protocol_handlers
+from .share_and_file_handlers import (
+    validate_share_target,
+    validate_file_handlers,
+    simulate_web_share,
+    simulate_file_launch,
+)
 
 SERVER_VERSION = "1.0.0"
 SERVER_START_TIME = time.time()
@@ -240,6 +246,20 @@ class PWARequestHandler(BaseHTTPRequestHandler):
             self._send_json_response({"status": "ok", "sample_report": rep.to_dict()})
             return
 
+        # 9. Share Target Info (GET)
+        if path in ("/api/share-target", "/api/share"):
+            sample = {"action": "/share", "method": "GET", "params": {"title": "title", "text": "text", "url": "url"}}
+            rep = validate_share_target(sample)
+            self._send_json_response({"status": "ok", "sample_report": rep.to_dict()})
+            return
+
+        # 10. File Handlers Info (GET)
+        if path in ("/api/file-handlers", "/api/files"):
+            sample = [{"action": "/open", "name": "Text Document", "accept": {"text/plain": [".txt"]}}]
+            rep = validate_file_handlers(sample)
+            self._send_json_response({"status": "ok", "sample_report": rep.to_dict()})
+            return
+
         # Static assets fallback (if public folder has files)
         static_file = Path(__file__).resolve().parent.parent.parent / "public" / path.lstrip("/")
         if static_file.is_file():
@@ -380,7 +400,53 @@ class PWARequestHandler(BaseHTTPRequestHandler):
                 self._send_json_response({"error": f"Failed to validate protocol handlers: {str(e)}"}, status=400)
             return
 
-        # 7. Export Complete PWA ZIP Bundle
+        # 7. Share Target Validation & Simulation
+        if path in ("/api/share-target", "/api/share", "/api/share-target/validate"):
+            try:
+                target_data = body.get("share_target", body.get("target", body))
+                scope = body.get("scope", "/")
+                report = validate_share_target(target_data, scope=scope)
+                self._send_json_response(report.to_dict())
+            except Exception as e:
+                self._send_json_response({"error": f"Failed to validate share target: {str(e)}"}, status=400)
+            return
+
+        if path in ("/api/share-target/simulate", "/api/share/simulate"):
+            try:
+                target_data = body.get("share_target", body.get("target", body))
+                title = body.get("title")
+                text = body.get("text")
+                url = body.get("url")
+                files = body.get("files")
+                result = simulate_web_share(target_data, title=title, text=text, url=url, files=files)
+                self._send_json_response(result.to_dict())
+            except Exception as e:
+                self._send_json_response({"error": f"Failed to simulate share: {str(e)}"}, status=400)
+            return
+
+        # 8. File Handlers Validation & Simulation
+        if path in ("/api/file-handlers", "/api/files", "/api/file-handlers/validate"):
+            try:
+                handlers_data = body.get("file_handlers", body.get("handlers", body if isinstance(body, list) else []))
+                scope = body.get("scope", "/")
+                report = validate_file_handlers(handlers_data, scope=scope)
+                self._send_json_response(report.to_dict())
+            except Exception as e:
+                self._send_json_response({"error": f"Failed to validate file handlers: {str(e)}"}, status=400)
+            return
+
+        if path in ("/api/file-handlers/simulate", "/api/files/simulate"):
+            try:
+                handlers_data = body.get("file_handlers", body.get("handlers", []))
+                file_name = body.get("file_name", "document.txt")
+                mime_type = body.get("mime_type")
+                result = simulate_file_launch(handlers_data, file_name=file_name, mime_type=mime_type)
+                self._send_json_response(result.to_dict())
+            except Exception as e:
+                self._send_json_response({"error": f"Failed to simulate file launch: {str(e)}"}, status=400)
+            return
+
+        # 9. Export Complete PWA ZIP Bundle
         if path in ("/api/bundle", "/api/export-zip"):
             try:
                 manifest_data = body.get("manifest", {})

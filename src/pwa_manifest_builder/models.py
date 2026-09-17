@@ -208,6 +208,41 @@ class ProtocolHandlerSpec:
 
 
 @dataclass
+class FileHandlerSpec:
+    """Specification for W3C File Handling API (file_handlers) in the manifest."""
+    action: str
+    accept: Dict[str, List[str]] = field(default_factory=dict)
+    name: Optional[str] = None
+    icons: List[IconSpec] = field(default_factory=list)
+    launch_type: str = "single-client"
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "action": self.action,
+            "accept": self.accept,
+        }
+        if self.name:
+            d["name"] = self.name
+        if self.icons:
+            d["icons"] = [i.to_dict() if isinstance(i, IconSpec) else i for i in self.icons]
+        if self.launch_type and self.launch_type != "single-client":
+            d["launch_type"] = self.launch_type
+        return d
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> FileHandlerSpec:
+        raw_icons = data.get("icons", [])
+        icons = [IconSpec.from_dict(i) if isinstance(i, dict) else i for i in raw_icons]
+        return cls(
+            action=str(data.get("action", "")),
+            accept=data.get("accept", {}),
+            name=data.get("name"),
+            icons=icons,
+            launch_type=str(data.get("launch_type", "single-client")),
+        )
+
+
+@dataclass
 class PWAManifestConfig:
     """Complete configuration model for W3C Web App Manifest."""
     name: str
@@ -317,7 +352,9 @@ class PWAManifestConfig:
                 h.to_dict() if hasattr(h, "to_dict") else h for h in self.protocol_handlers
             ]
         if self.file_handlers:
-            d["file_handlers"] = self.file_handlers
+            d["file_handlers"] = [
+                h.to_dict() if hasattr(h, "to_dict") else h for h in self.file_handlers
+            ]
         if self.i18n:
             d["i18n"] = self.i18n
 
@@ -338,6 +375,42 @@ class PWAManifestConfig:
         self.protocol_handlers.append(handler)
         return handler
 
+    def set_share_target(
+        self,
+        action: str,
+        method: str = "GET",
+        enctype: str = "application/x-www-form-urlencoded",
+        params: Optional[Dict[str, Any]] = None,
+    ) -> ShareTargetSpec:
+        """Helper to configure Web Share Target for the manifest."""
+        target = ShareTargetSpec(
+            action=action,
+            method=method,
+            enctype=enctype,
+            params=params or {},
+        )
+        self.share_target = target
+        return target
+
+    def add_file_handler(
+        self,
+        action: str,
+        accept: Dict[str, List[str]],
+        name: Optional[str] = None,
+        launch_type: str = "single-client",
+        icons: Optional[List[IconSpec]] = None,
+    ) -> FileHandlerSpec:
+        """Helper to append a file handler for the File Handling API."""
+        handler = FileHandlerSpec(
+            action=action,
+            accept=accept,
+            name=name,
+            icons=icons or [],
+            launch_type=launch_type,
+        )
+        self.file_handlers.append(handler)
+        return handler
+
     def simulate_shortcuts(self) -> ShortcutSuiteReport:
         """Simulate App Shortcuts action events and validate icon assets."""
         from .shortcuts_simulator import simulate_app_shortcuts
@@ -348,6 +421,16 @@ class PWAManifestConfig:
         from .shortcuts_simulator import validate_protocol_handlers
         return validate_protocol_handlers(self)
 
+    def validate_share_target(self) -> ShareTargetValidationReport:
+        """Validate Web Share Target configuration against W3C specification."""
+        from .share_and_file_handlers import validate_share_target
+        return validate_share_target(self)
+
+    def validate_file_handlers(self) -> FileHandlerValidationReport:
+        """Validate File Handling API configuration against W3C specification."""
+        from .share_and_file_handlers import validate_file_handlers
+        return validate_file_handlers(self)
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> PWAManifestConfig:
         """Constructs a PWAManifestConfig instance from a dictionary."""
@@ -357,6 +440,11 @@ class PWAManifestConfig:
         protocol_handlers = [
             ProtocolHandlerSpec.from_dict(h) if isinstance(h, dict) else h
             for h in raw_protocols
+        ]
+        raw_file_handlers = data.get("file_handlers", [])
+        file_handlers = [
+            FileHandlerSpec.from_dict(h) if isinstance(h, dict) else h
+            for h in raw_file_handlers
         ]
         share_target = None
         if data.get("share_target"):
@@ -384,7 +472,7 @@ class PWAManifestConfig:
             id=data.get("id"),
             share_target=share_target,
             protocol_handlers=protocol_handlers,
-            file_handlers=data.get("file_handlers", []),
+            file_handlers=file_handlers,
             display_override=data.get("display_override", []),
             i18n=data.get("i18n", {})
         )
@@ -630,3 +718,139 @@ class ProtocolHandlerValidationReport:
             "registration_script": self.registration_script,
             "registration_snippet_js": self.registration_script,
         }
+
+
+@dataclass
+class ShareTargetValidationReport:
+    """W3C Web Share Target API compliance validation report and handler scripts."""
+    is_valid: bool
+    action: str
+    method: str
+    enctype: str
+    params: Dict[str, Any]
+    supports_files: bool
+    accepted_file_types: List[str]
+    errors: List[str]
+    warnings: List[str]
+    receiver_script: str
+    share_invoker_script: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "is_valid": self.is_valid,
+            "action": self.action,
+            "method": self.method,
+            "enctype": self.enctype,
+            "params": self.params,
+            "supports_files": self.supports_files,
+            "accepted_file_types": self.accepted_file_types,
+            "errors": self.errors,
+            "warnings": self.warnings,
+            "receiver_script": self.receiver_script,
+            "share_invoker_script": self.share_invoker_script,
+        }
+
+
+@dataclass
+class FileHandlerItem:
+    """Evaluation of an individual file handler entry."""
+    action: str
+    accept: Dict[str, List[str]]
+    name: Optional[str] = None
+    launch_type: str = "single-client"
+    is_valid: bool = True
+    extensions: List[str] = field(default_factory=list)
+    mime_types: List[str] = field(default_factory=list)
+    issues: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "action": self.action,
+            "accept": self.accept,
+            "name": self.name,
+            "launch_type": self.launch_type,
+            "is_valid": self.is_valid,
+            "extensions": self.extensions,
+            "mime_types": self.mime_types,
+            "issues": self.issues,
+        }
+
+
+@dataclass
+class FileHandlerValidationReport:
+    """Validation report and LaunchQueue consumer script for W3C File Handling API."""
+    is_valid: bool
+    valid_count: int
+    invalid_count: int
+    handlers: List[FileHandlerItem]
+    errors: List[str]
+    warnings: List[str]
+    launch_queue_script: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "is_valid": self.is_valid,
+            "valid_count": self.valid_count,
+            "invalid_count": self.invalid_count,
+            "handlers": [h.to_dict() if hasattr(h, "to_dict") else h for h in self.handlers],
+            "errors": self.errors,
+            "warnings": self.warnings,
+            "launch_queue_script": self.launch_queue_script,
+        }
+
+
+@dataclass
+class ShareSimulationResult:
+    """Result of simulating an incoming Web Share action."""
+    matched: bool
+    target_action: str
+    method: str
+    enctype: str
+    simulated_url: str
+    query_params: Dict[str, str]
+    form_fields: Dict[str, str]
+    files_payload: List[Dict[str, Any]]
+    client_receiver_code: str
+    issues: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "matched": self.matched,
+            "target_action": self.target_action,
+            "method": self.method,
+            "enctype": self.enctype,
+            "simulated_url": self.simulated_url,
+            "query_params": self.query_params,
+            "form_fields": self.form_fields,
+            "files_payload": self.files_payload,
+            "client_receiver_code": self.client_receiver_code,
+            "issues": self.issues,
+        }
+
+
+@dataclass
+class FileLaunchSimulationResult:
+    """Result of simulating an OS file open event directed to the PWA."""
+    handled: bool
+    file_name: str
+    mime_type: Optional[str]
+    matched_action: Optional[str]
+    matched_handler_name: Optional[str]
+    launch_type: Optional[str]
+    simulated_launch_params: Dict[str, Any]
+    consumer_dispatch_code: str
+    issues: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "handled": self.handled,
+            "file_name": self.file_name,
+            "mime_type": self.mime_type,
+            "matched_action": self.matched_action,
+            "matched_handler_name": self.matched_handler_name,
+            "launch_type": self.launch_type,
+            "simulated_launch_params": self.simulated_launch_params,
+            "consumer_dispatch_code": self.consumer_dispatch_code,
+            "issues": self.issues,
+        }
+
