@@ -28,6 +28,7 @@ from .manifest_generator import (
     generate_manifest_dict,
     generate_manifest_json,
     generate_html_meta_tags,
+    generate_install_prompt_banner_html,
     save_manifest,
     build_manifest,
 )
@@ -107,6 +108,7 @@ __all__ = [
     "generate_manifest_dict",
     "generate_manifest_json",
     "generate_html_meta_tags",
+    "generate_install_prompt_banner_html",
     "save_manifest",
     "build_manifest",
     # Service Worker

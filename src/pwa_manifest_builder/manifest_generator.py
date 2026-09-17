@@ -182,3 +182,224 @@ def build_manifest(
         icons=parsed_icons,
         **kwargs
     )
+
+
+def generate_install_prompt_banner_html(
+    config: Union[PWAManifestConfig, Dict[str, Any]],
+    banner_id: str = "pwa-install-banner",
+    banner_title: Optional[str] = None,
+    banner_prompt_text: Optional[str] = None,
+    position: str = "bottom",
+    accent_color: Optional[str] = None,
+    dismiss_days: int = 7,
+) -> str:
+    """
+    Generates a production-ready, accessible, Material 3 influenced floating install prompt banner.
+    Captures the `beforeinstallprompt` browser event and provides iOS Safari fallback instructions.
+    
+    100% self-contained HTML/CSS/JavaScript. Design influenced by Material 3 tokens.
+    """
+    cfg = _coerce_manifest_config(config)
+    app_title = (banner_title or cfg.short_name or cfg.name or "App").replace('"', '&quot;').replace('<', '&lt;')
+    prompt_desc = (banner_prompt_text or cfg.description or "Install this app for faster access and offline use.").replace('"', '&quot;').replace('<', '&lt;')
+    primary_color = accent_color or cfg.theme_color or "#1a73e8"
+    
+    # Locate best icon
+    icon_src = "/icons/icon-192x192.png"
+    for icon in cfg.icons:
+        src = icon.src if isinstance(icon, IconSpec) else icon.get("src", "")
+        if src:
+            icon_src = src
+            if "192x192" in (icon.sizes if isinstance(icon, IconSpec) else icon.get("sizes", "")):
+                break
+
+    pos_style = "bottom: 20px;" if position != "top" else "top: 20px;"
+
+    return f"""<!-- Material 3 Influenced PWA Install Banner Component -->
+<aside id="{banner_id}" class="pwa-install-card pwa-hidden" role="dialog" aria-labelledby="{banner_id}-title" aria-describedby="{banner_id}-desc" style="{pos_style}">
+  <div class="pwa-card-content">
+    <img class="pwa-app-icon" src="{icon_src}" alt="{app_title} icon" width="48" height="48" loading="lazy" />
+    <div class="pwa-text-group">
+      <h2 id="{banner_id}-title" class="pwa-title">{app_title}</h2>
+      <p id="{banner_id}-desc" class="pwa-desc">{prompt_desc}</p>
+    </div>
+  </div>
+  <div class="pwa-action-group">
+    <button type="button" id="{banner_id}-dismiss-btn" class="pwa-btn pwa-btn-text">Not now</button>
+    <button type="button" id="{banner_id}-install-btn" class="pwa-btn pwa-btn-primary">Install</button>
+  </div>
+  <div id="{banner_id}-ios-sheet" class="pwa-ios-sheet pwa-hidden">
+    <p>To install on iOS: tap <strong>Share</strong> <span aria-hidden="true">⎋</span> then <strong>Add to Home Screen</strong> <span aria-hidden="true">⊞</span>.</p>
+  </div>
+</aside>
+
+<style>
+/* Material 3 Influenced Floating Sheet Tokens */
+#{banner_id} {{
+  --pwa-primary: {primary_color};
+  --pwa-surface: #ffffff;
+  --pwa-on-surface: #1f1f1f;
+  --pwa-on-surface-variant: #444746;
+  --pwa-outline: #c4c7c5;
+  --pwa-elevation-3: 0 4px 16px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 480px;
+  background: var(--pwa-surface);
+  color: var(--pwa-on-surface);
+  box-shadow: var(--pwa-elevation-3);
+  border-radius: 20px;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px);
+  transition: opacity 0.25s cubic-bezier(0.2, 0, 0, 1), transform 0.25s cubic-bezier(0.2, 0, 0, 1);
+}}
+#{banner_id}.pwa-hidden {{
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 20px);
+}}
+#{banner_id} .pwa-card-content {{
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}}
+#{banner_id} .pwa-app-icon {{
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}}
+#{banner_id} .pwa-text-group {{
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}}
+#{banner_id} .pwa-title {{
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--pwa-on-surface);
+}}
+#{banner_id} .pwa-desc {{
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--pwa-on-surface-variant);
+}}
+#{banner_id} .pwa-action-group {{
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}}
+#{banner_id} .pwa-btn {{
+  cursor: pointer;
+  border-radius: 20px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  outline: none;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}}
+#{banner_id} .pwa-btn-primary {{
+  background: var(--pwa-primary);
+  color: #ffffff;
+}}
+#{banner_id} .pwa-btn-primary:hover {{
+  filter: brightness(1.08);
+}}
+#{banner_id} .pwa-btn-text {{
+  background: transparent;
+  color: var(--pwa-on-surface-variant);
+}}
+#{banner_id} .pwa-btn-text:hover {{
+  background: rgba(0, 0, 0, 0.05);
+}}
+#{banner_id} .pwa-ios-sheet {{
+  border-top: 1px solid var(--pwa-outline);
+  padding-top: 10px;
+  font-size: 13px;
+  color: var(--pwa-on-surface-variant);
+}}
+#{banner_id} .pwa-ios-sheet strong {{
+  color: var(--pwa-on-surface);
+}}
+</style>
+
+<script>
+(function() {{
+  var banner = document.getElementById("{banner_id}");
+  var installBtn = document.getElementById("{banner_id}-install-btn");
+  var dismissBtn = document.getElementById("{banner_id}-dismiss-btn");
+  var iosSheet = document.getElementById("{banner_id}-ios-sheet");
+  var deferredPrompt = null;
+  var DISMISS_KEY = "pwa-prompt-dismissed";
+  var DISMISS_EXPIRY_MS = {dismiss_days} * 24 * 60 * 60 * 1000;
+
+  function isDismissed() {{
+    try {{
+      var timestamp = localStorage.getItem(DISMISS_KEY);
+      if (!timestamp) return false;
+      return (Date.now() - parseInt(timestamp, 10)) < DISMISS_EXPIRY_MS;
+    }} catch (e) {{
+      return false;
+    }}
+  }}
+
+  function showBanner() {{
+    if (isDismissed()) return;
+    if (banner) banner.classList.remove("pwa-hidden");
+  }}
+
+  function hideBanner() {{
+    if (banner) banner.classList.add("pwa-hidden");
+  }}
+
+  window.addEventListener("beforeinstallprompt", function(e) {{
+    e.preventDefault();
+    deferredPrompt = e;
+    showBanner();
+  }});
+
+  if (installBtn) {{
+    installBtn.addEventListener("click", function() {{
+      if (deferredPrompt) {{
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function(choiceResult) {{
+          deferredPrompt = null;
+          hideBanner();
+        }});
+      }} else if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {{
+        if (iosSheet) iosSheet.classList.toggle("pwa-hidden");
+      }}
+    }});
+  }}
+
+  if (dismissBtn) {{
+    dismissBtn.addEventListener("click", function() {{
+      hideBanner();
+      try {{
+        localStorage.setItem(DISMISS_KEY, Date.now().toString());
+      }} catch (e) {{}}
+    }});
+  }}
+
+  // iOS Safari detection fallback
+  var isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+  var isStandalone = ("standalone" in window.navigator) && window.navigator.standalone;
+  if (isIos && !isStandalone && !isDismissed()) {{
+    showBanner();
+  }}
+}})();
+</script>"""
+
