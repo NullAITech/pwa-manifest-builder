@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pwa-manifest-builder"
+version = "1.0.0"
+description = "High-performance PWA manifest & ServiceWorker generator, icon forge, installability linter, MCP server & Material 3 studio UI."
+readme = "README.md"
+authors = [
+    { name = "PWA Studio Team", email = "pwa-studio@example.com" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+keywords = [
+    "pwa",
+    "progressive-web-apps",
+    "webmanifest",
+    "serviceworker",
+    "service-worker",
+    "mcp",
+    "icon-forge",
+    "lighthouse",
+    "material3",
+    "w3c"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: User Interfaces",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[project.scripts]
+pwa-manifest-builder = "pwa_manifest_builder.cli:main"
+pwa-builder = "pwa_manifest_builder.cli:main"
+pwabuild = "pwa_manifest_builder.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]

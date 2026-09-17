@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Google PWA Studio | PWA Manifest & ServiceWorker Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --md-sys-color-primary: #1a73e8;
+      --md-sys-color-on-primary: #ffffff;
+      --md-sys-color-primary-container: #e8f0fe;
+      --md-sys-color-on-primary-container: #174ea6;
+      --md-sys-color-surface: #ffffff;
+      --md-sys-color-on-surface: #202124;
+      --md-sys-color-surface-variant: #f1f3f4;
+      --md-sys-color-on-surface-variant: #5f6368;
+      --md-sys-color-outline: #dadce0;
+      --md-sys-color-background: #f8f9fa;
+      --md-sys-color-error: #d93025;
+      --md-sys-color-error-container: #fce8e6;
+      --md-sys-color-success: #1e8e3e;
+      --md-sys-color-success-container: #e6f4ea;
+      --md-sys-color-warning: #f9ab00;
+      --md-sys-color-warning-container: #fef7e0;
+      --md-elevation-1: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+      --md-elevation-2: 0 1px 2px 0 rgba(60,64,67,0.3), 0 2px 6px 2px rgba(60,64,67,0.15);
+      --md-elevation-3: 0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+      --font-google: 'Google Sans', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Roboto Mono', monospace;
+    }
+
+    [data-theme="dark"] {
+      --md-sys-color-primary: #8ab4f8;
+      --md-sys-color-on-primary: #202124;
+      --md-sys-color-primary-container: #174ea6;
+      --md-sys-color-on-primary-container: #d2e3fc;
+      --md-sys-color-surface: #202124;
+      --md-sys-color-on-surface: #e8eaed;
+      --md-sys-color-surface-variant: #303134;
+      --md-sys-color-on-surface-variant: #9aa0a6;
+      --md-sys-color-outline: #5f6368;
+      --md-sys-color-background: #171717;
+      --md-sys-color-error: #f28b82;
+      --md-sys-color-error-container: #5c0000;
+      --md-sys-color-success: #81c995;
+      --md-sys-color-success-container: #0d522c;
+      --md-sys-color-warning: #fdd663;
+      --md-sys-color-warning-container: #5c4400;
+      --md-elevation-1: 0 1px 2px 0 rgba(0,0,0,0.5), 0 1px 3px 1px rgba(0,0,0,0.3);
+      --md-elevation-2: 0 1px 3px 0 rgba(0,0,0,0.5), 0 3px 8px 2px rgba(0,0,0,0.4);
+      --md-elevation-3: 0 2px 6px 0 rgba(0,0,0,0.6), 0 6px 12px 4px rgba(0,0,0,0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    body {
+      font-family: var(--font-google);
+      background-color: var(--md-sys-color-background);
+      color: var(--md-sys-color-on-surface);
+      line-height: 1.5;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header Bar */
+    header.app-header {
+      background-color: var(--md-sys-color-surface);
+      border-bottom: 1px solid var(--md-sys-color-outline);
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--md-elevation-1);
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #1a73e8, #34a853);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 18px;
+      box-shadow: 0 2px 4px rgba(26,115,232,0.3);
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
+      color: var(--md-sys-color-on-surface-variant);
+      margin-left: 4px;
+      background: var(--md-sys-color-surface-variant);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: var(--font-google);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      user-select: none;
+    }
+
+    .btn-primary {
+      background-color: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      box-shadow: var(--md-elevation-1);
+    }
+    .btn-primary:hover {
+      filter: brightness(1.05);
+      box-shadow: var(--md-elevation-2);
+    }
+
+    .btn-tonal {
+      background-color: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+    }
+    .btn-tonal:hover {
+      filter: brightness(0.96);
+    }
+
+    .btn-outlined {
+      background-color: transparent;
+      border-color: var(--md-sys-color-outline);
+      color: var(--md-sys-color-on-surface);
+    }
+    .btn-outlined:hover {
+      background-color: var(--md-sys-color-surface-variant);
+    }
+
+    .btn-icon {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+    .btn-icon:hover {
+      background-color: var(--md-sys-color-surface-variant);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    /* Main Studio Container */
+    main.studio-container {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 360px 1fr 340px;
+      gap: 20px;
+      padding: 20px 24px;
+      max-width: 1680px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    @media (max-width: 1300px) {
+      main.studio-container {
+        grid-template-columns: 320px 1fr;
+      }
+      .right-panel {
+        grid-column: span 2;
+      }
+    }
+
+    @media (max-width: 900px) {
+      main.studio-container {
+        grid-template-columns: 1fr;
+      }
+      .right-panel {
+        grid-column: span 1;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background-color: var(--md-sys-color-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--md-sys-color-outline);
+      padding: 20px;
+      box-shadow: var(--md-elevation-1);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Form Fields & Tabs */
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--md-sys-color-outline);
+      margin-bottom: 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      padding: 8px 14px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      font-family: var(--font-google);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--md-sys-color-on-surface-variant);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      color: var(--md-sys-color-primary);
+      border-bottom-color: var(--md-sys-color-primary);
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+    .form-control {
+      width: 100%;
+      padding: 8px 12px;
+      font-family: var(--font-google);
+      font-size: 13px;
+      background-color: var(--md-sys-color-surface-variant);
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      color: var(--md-sys-color-on-surface);
+      outline: none;
+    }
+    .form-control:focus {
+      border-color: var(--md-sys-color-primary);
+      background-color: var(--md-sys-color-surface);
+    }
+
+    .color-picker-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .color-input-preview {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--md-sys-color-outline);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    /* Template Preset Selector */
+    .preset-box {
+      margin-bottom: 16px;
+      background: var(--md-sys-color-primary-container);
+      border-radius: var(--radius-md);
+      padding: 12px;
+    }
+    .preset-box label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--md-sys-color-on-primary-container);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    /* Center Viewport */
+    .center-viewport {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .viewport-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .view-toggle {
+      display: flex;
+      background-color: var(--md-sys-color-surface-variant);
+      border-radius: var(--radius-full);
+      padding: 3px;
+    }
+    .view-toggle-btn {
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+    .view-toggle-btn.active {
+      background-color: var(--md-sys-color-surface);
+      color: var(--md-sys-color-primary);
+      box-shadow: var(--md-elevation-1);
+    }
+
+    /* Mobile Device Mockup */
+    .device-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      background: radial-gradient(circle, var(--md-sys-color-surface-variant) 0%, transparent 70%);
+      min-height: 540px;
+    }
+
+    .phone-mockup {
+      width: 300px;
+      height: 560px;
+      background-color: #121212;
+      border: 10px solid #202124;
+      border-radius: 36px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-camera-notch {
+      width: 90px;
+      height: 18px;
+      background: #202124;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+    }
+
+    .phone-screen {
+      flex: 1;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .phone-status-bar {
+      height: 24px;
+      background-color: transparent;
+      padding: 4px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #333333;
+      z-index: 10;
+    }
+
+    /* Screen Previews */
+    .screen-view {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      position: relative;
+    }
+    .screen-view.active {
+      display: flex;
+    }
+
+    /* Install Sheet Mockup */
+    .install-sheet-preview {
+      flex: 1;
+      background: #e8eaed;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 12px;
+    }
+
+    .install-sheet {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .install-sheet-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .install-icon-preview {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--md-sys-color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      font-weight: 700;
+      overflow: hidden;
+    }
+    .install-app-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #202124;
+    }
+    .install-app-domain {
+      font-size: 11px;
+      color: #5f6368;
+    }
+    .install-btns {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* Splash Screen Mockup */
+    .splash-preview {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .splash-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      background: var(--md-sys-color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 36px;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .splash-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    /* Homescreen Mockup */
+    .homescreen-preview {
+      flex: 1;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="500"><rect width="100%" height="100%" fill="%232c3e50"/><circle cx="150" cy="250" r="120" fill="%2334495e" opacity="0.4"/></svg>') center/cover;
+      padding: 30px 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      align-content: start;
+    }
+    .home-app-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .home-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--md-sys-color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      position: relative;
+    }
+    .home-app-label {
+      font-size: 10px;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      text-align: center;
+      max-width: 50px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Code View */
+    .code-stage {
+      display: none;
+      flex-direction: column;
+    }
+    .code-stage.active {
+      display: flex;
+    }
+    .code-editor-box {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: var(--radius-md);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 16px;
+      height: 480px;
+      overflow: auto;
+      white-space: pre;
+      line-height: 1.4;
+      border: 1px solid var(--md-sys-color-outline);
+    }
+
+    /* Right Panel (Audit & Lighthouse) */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .score-gauge-card {
+      text-align: center;
+      padding: 24px 16px;
+    }
+
+    .gauge-wrapper {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      margin: 0 auto 12px;
+    }
+    .gauge-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .gauge-bg {
+      fill: none;
+      stroke: var(--md-sys-color-surface-variant);
+      stroke-width: 10;
+    }
+    .gauge-fill {
+      fill: none;
+      stroke: var(--md-sys-color-success);
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 377;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease;
+    }
+    .gauge-number {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      font-weight: 700;
+      font-family: var(--font-google);
+    }
+
+    .audit-checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      background-color: var(--md-sys-color-surface-variant);
+    }
+    .checklist-pill {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+    }
+    .checklist-pill.pass { background-color: var(--md-sys-color-success); }
+    .checklist-pill.fail { background-color: var(--md-sys-color-error); }
+    .checklist-pill.warn { background-color: var(--md-sys-color-warning); color: #202124; }
+
+    /* Segmented Button Bar */
+    .segmented-bar {
+      display: flex;
+      background-color: var(--md-sys-color-surface-variant);
+      border-radius: var(--radius-full);
+      padding: 3px;
+      gap: 2px;
+      margin-bottom: 12px;
+    }
+    .segmented-btn {
+      flex: 1;
+      padding: 6px 8px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: transparent;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--md-sys-color-on-surface-variant);
+      text-align: center;
+    }
+    .segmented-btn.active {
+      background-color: var(--md-sys-color-surface);
+      color: var(--md-sys-color-primary);
+      box-shadow: var(--md-elevation-1);
+    }
+
+    .bundle-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-logo">P</div>
+      <div>
+        <span class="brand-title">Google PWA Studio</span>
+        <span class="brand-subtitle">v1.0.0</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-icon" id="themeToggleBtn" title="Toggle Light/Dark Theme">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 01-4.4 2.26 5.403 5.403 0 01-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
+        </svg>
+      </button>
+      <button class="btn btn-tonal" id="copyManifestBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+        Copy Manifest
+      </button>
+      <button class="btn btn-primary" id="downloadBundleHeaderBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+        Download PWA Bundle (.ZIP)
+      </button>
+    </div>
+  </header>
+
+  <!-- Studio Workspace -->
+  <main class="studio-container">
+    
+    <!-- LEFT PANEL: Configurator -->
+    <section class="left-panel">
+      <div class="card">
+        <!-- Preset Picker -->
+        <div class="preset-box">
+          <label for="templateSelect">⚡ Choose Template Preset</label>
+          <select id="templateSelect" class="form-control" style="background:var(--md-sys-color-surface);">
+            <option value="ecommerce">🛒 E-Commerce Store</option>
+            <option value="game">🎮 Interactive Arcade Game</option>
+            <option value="productivity">📝 Productivity Notes & Tasks</option>
+            <option value="dashboard">📊 SaaS Analytics Dashboard</option>
+            <option value="social">💬 Social & Chat Community</option>
+            <option value="media">🎵 Audio/Video Media Player</option>
+            <option value="offline-doc">📚 Offline Docs Reader</option>
+            <option value="fitness">💪 Fitness & Workout Tracker</option>
+            <option value="travel">✈️ Travel & Trip Booking</option>
+            <option value="food">🍔 Food Delivery & Restaurant</option>
+            <option value="portfolio">💼 Developer Portfolio</option>
+            <option value="minimal">✨ Minimal Baseline PWA</option>
+          </select>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="tab-basic">Basic Info</button>
+          <button class="tab-btn" data-tab="tab-display">Display</button>
+          <button class="tab-btn" data-tab="tab-scope">Scope & URLs</button>
+          <button class="tab-btn" data-tab="tab-sw">ServiceWorker</button>
+          <button class="tab-btn" data-tab="tab-icons">Icon Forge</button>
+        </div>
+
+        <!-- Tab 1: Basic Info -->
+        <div class="tab-content" id="tab-basic">
+          <div class="form-group">
+            <label for="appName">Application Name</label>
+            <input type="text" id="appName" class="form-control" value="Google PWA Studio">
+          </div>
+          <div class="form-group">
+            <label for="appShortName">Short Name (Home screen badge)</label>
+            <input type="text" id="appShortName" class="form-control" value="PWA Studio" maxlength="12">
+          </div>
+          <div class="form-group">
+            <label for="appDesc">Description</label>
+            <textarea id="appDesc" class="form-control" rows="2">Production-grade Progressive Web App architect and studio.</textarea>
+          </div>
+          <div class="form-group">
+            <label>Theme Color (Browser Toolbar)</label>
+            <div class="color-picker-row">
+              <input type="color" id="themeColorPicker" class="color-input-preview" value="#1a73e8">
+              <input type="text" id="themeColorText" class="form-control" value="#1a73e8">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Background Color (Splash Screen)</label>
+            <div class="color-picker-row">
+              <input type="color" id="bgColorPicker" class="color-input-preview" value="#ffffff">
+              <input type="text" id="bgColorText" class="form-control" value="#ffffff">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="appLang">Language & Text Direction</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="appLang" class="form-control" value="en-US">
+              <select id="appDir" class="form-control">
+                <option value="auto">Auto</option>
+                <option value="ltr">LTR</option>
+                <option value="rtl">RTL</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Display & Window -->
+        <div class="tab-content" id="tab-display" style="display:none;">
+          <div class="form-group">
+            <label for="displayMode">Display Mode</label>
+            <select id="displayMode" class="form-control">
+              <option value="standalone" selected>Standalone (App-like window)</option>
+              <option value="fullscreen">Fullscreen (Immersive games/media)</option>
+              <option value="minimal-ui">Minimal UI (Back/forward navigation)</option>
+              <option value="browser">Browser (Standard tab)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="orientationMode">Orientation Lock</label>
+            <select id="orientationMode" class="form-control">
+              <option value="any" selected>Any (Device Default)</option>
+              <option value="portrait">Portrait</option>
+              <option value="landscape">Landscape</option>
+              <option value="portrait-primary">Portrait Primary</option>
+              <option value="landscape-primary">Landscape Primary</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="categoriesInput">Categories (comma separated)</label>
+            <input type="text" id="categoriesInput" class="form-control" value="utilities, productivity, developer">
+          </div>
+        </div>
+
+        <!-- Tab 3: Scope & URLs -->
+        <div class="tab-content" id="tab-scope" style="display:none;">
+          <div class="form-group">
+            <label for="startUrl">Start URL</label>
+            <input type="text" id="startUrl" class="form-control" value="/?source=pwa">
+          </div>
+          <div class="form-group">
+            <label for="scopeUrl">Navigation Scope</label>
+            <input type="text" id="scopeUrl" class="form-control" value="/">
+          </div>
+          <div class="form-group">
+            <label for="shortcutTitle">App Shortcut #1 Name</label>
+            <input type="text" id="shortcutTitle" class="form-control" value="Quick Action">
+          </div>
+          <div class="form-group">
+            <label for="shortcutUrl">Shortcut #1 Target URL</label>
+            <input type="text" id="shortcutUrl" class="form-control" value="/quick-action">
+          </div>
+        </div>
+
+        <!-- Tab 4: ServiceWorker & Caching -->
+        <div class="tab-content" id="tab-sw" style="display:none;">
+          <div class="form-group">
+            <label for="swCacheName">Cache Name & Version</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="swCacheName" class="form-control" value="pwa-cache">
+              <input type="text" id="swCacheVer" class="form-control" value="v1" style="width:70px;">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="swStrategy">Caching Strategy</label>
+            <select id="swStrategy" class="form-control">
+              <option value="StaleWhileRevalidate" selected>Stale-While-Revalidate (Fast + fresh)</option>
+              <option value="CacheFirst">Cache-First (Media & static assets)</option>
+              <option value="NetworkFirst">Network-First (Live APIs & dynamic content)</option>
+              <option value="NetworkOnly">Network-Only</option>
+              <option value="CacheOnly">Cache-Only</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="precacheAssets">Pre-cached Assets List</label>
+            <textarea id="precacheAssets" class="form-control" rows="3">/, /index.html, /manifest.webmanifest, /offline.html</textarea>
+          </div>
+          <div class="form-group">
+            <label><input type="checkbox" id="enableSync" checked> Enable Background Sync</label>
+          </div>
+          <div class="form-group">
+            <label><input type="checkbox" id="enablePush" checked> Enable Web Push Notifications</label>
+          </div>
+          <div class="form-group">
+            <label><input type="checkbox" id="enablePreload" checked> Enable Navigation Preload</label>
+          </div>
+        </div>
+
+        <!-- Tab 5: Icon Forge -->
+        <div class="tab-content" id="tab-icons" style="display:none;">
+          <div class="form-group">
+            <label for="iconGlyph">Icon Initial Letter / Glyph</label>
+            <input type="text" id="iconGlyph" class="form-control" value="P" maxlength="2">
+          </div>
+          <div class="form-group">
+            <label for="iconShape">Icon Shape</label>
+            <select id="iconShape" class="form-control">
+              <option value="rounded" selected>Squircle / Rounded Square</option>
+              <option value="circle">Circle</option>
+              <option value="maskable">Adaptive Safe Zone Maskable</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="iconFgColor">Foreground Glyph Color</label>
+            <input type="color" id="iconFgColor" class="color-input-preview" value="#ffffff">
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CENTER PANEL: Dual Mode Viewport -->
+    <section class="center-viewport">
+      <div class="card" style="padding-bottom:12px;">
+        <div class="viewport-header">
+          <div class="view-toggle">
+            <button class="view-toggle-btn active" id="btnPreviewMode">📱 Live Device Preview</button>
+            <button class="view-toggle-btn" id="btnCodeMode">💻 Code Inspector</button>
+          </div>
+          <div style="font-size:12px; color:var(--md-sys-color-on-surface-variant);" id="previewStatusLabel">
+            Interactive Pixel Preview
+          </div>
+        </div>
+      </div>
+
+      <!-- DEVICE MOCKUP STAGE -->
+      <div class="card device-stage" id="deviceStage">
+        <div class="phone-mockup">
+          <div class="phone-camera-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status-bar" id="phoneStatusBar">
+              <span>9:41</span>
+              <span>LTE 100%</span>
+            </div>
+
+            <!-- Screen View 1: Install Banner -->
+            <div class="screen-view active" id="screenInstall">
+              <div class="install-sheet-preview">
+                <div class="install-sheet">
+                  <div class="install-sheet-top">
+                    <div class="install-icon-preview" id="installIconPreview">P</div>
+                    <div>
+                      <div class="install-app-title" id="installAppName">Google PWA Studio</div>
+                      <div class="install-app-domain" id="installAppDomain">pwastudio.app</div>
+                    </div>
+                  </div>
+                  <div style="font-size:12px; color:#5f6368;" id="installAppDesc">
+                    Install this progressive web app for offline access, instant notifications, and native speed.
+                  </div>
+                  <div class="install-btns">
+                    <button class="btn btn-tonal" style="flex:1; font-size:12px; padding:6px;">Cancel</button>
+                    <button class="btn btn-primary" style="flex:1; font-size:12px; padding:6px;">Install App</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Screen View 2: Splash Screen -->
+            <div class="screen-view" id="screenSplash">
+              <div class="splash-preview" id="splashContainer">
+                <div class="splash-icon" id="splashIcon">P</div>
+                <div class="splash-title" id="splashTitle">Google PWA Studio</div>
+              </div>
+            </div>
+
+            <!-- Screen View 3: Homescreen Icon -->
+            <div class="screen-view" id="screenHome">
+              <div class="homescreen-preview">
+                <div class="home-app-item">
+                  <div class="home-icon" id="homeIcon">P</div>
+                  <div class="home-app-label" id="homeLabel">PWA Studio</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- CODE INSPECTOR STAGE -->
+      <div class="card code-stage" id="codeStage">
+        <div class="tab-bar">
+          <button class="tab-btn active" data-code-tab="code-manifest">manifest.webmanifest</button>
+          <button class="tab-btn" data-code-tab="code-sw">sw.js</button>
+          <button class="tab-btn" data-code-tab="code-head">index.html &lt;head&gt;</button>
+          <button class="tab-btn" data-code-tab="code-offline">offline.html</button>
+        </div>
+        <pre class="code-editor-box" id="codeOutputBox"></pre>
+      </div>
+
+      <!-- Segmented Bottom Bar for Mockup Screens -->
+      <div class="card" id="mockupScreenSelectorCard">
+        <div class="segmented-bar">
+          <button class="segmented-btn active" data-screen="screenInstall">📥 Install Bottom Sheet</button>
+          <button class="segmented-btn" data-screen="screenSplash">⚡ Launch Splash Screen</button>
+          <button class="segmented-btn" data-screen="screenHome">🏠 Android Homescreen</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT PANEL: Audit & Lighthouse Gauge -->
+    <section class="right-panel">
+      
+      <!-- Lighthouse Gauge Card -->
+      <div class="card score-gauge-card">
+        <div class="card-title" style="justify-content:center; margin-bottom:8px;">
+          Lighthouse PWA Score
+        </div>
+        <div class="gauge-wrapper">
+          <svg class="gauge-svg" viewBox="0 0 140 140">
+            <circle class="gauge-bg" cx="70" cy="70" r="60"></circle>
+            <circle class="gauge-fill" id="gaugeFillCircle" cx="70" cy="70" r="60"></circle>
+          </svg>
+          <div class="gauge-number" id="gaugeScoreNumber">100</div>
+        </div>
+        <div style="font-size:13px; font-weight:700; color:var(--md-sys-color-success);" id="gaugeStatusText">
+          Passed Installability & Quality Gates
+        </div>
+      </div>
+
+      <!-- Audit Checklist Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>PWA Audit Checklist</span>
+          <span style="font-size:11px; background:var(--md-sys-color-surface-variant); padding:2px 8px; border-radius:12px;" id="auditPassedCount">9/9 Passed</span>
+        </div>
+        <ul class="audit-checklist" id="auditChecklist">
+          <li class="checklist-item"><span class="checklist-pill pass">✓</span> Web App Manifest provided</li>
+          <li class="checklist-item"><span class="checklist-pill pass">✓</span> Valid start_url and scope</li>
+          <li class="checklist-item"><span class="checklist-pill pass">✓</span> Display mode is standalone/fullscreen</li>
+          <li class="checklist-item"><span class="checklist-pill pass">✓</span> Required 192x192 & 512x512 icons</li>
+          <li class="checklist-item"><span class="checklist-pill pass">✓</span> Adaptive maskable icon included</li>
+          <li class="checklist-item"><span class="checklist-pill pass">✓</span> Theme color & background color set</li>
+          <li class="checklist-item"><span class="checklist-pill pass">✓</span> ServiceWorker registered with fetch</li>
+          <li class="checklist-item"><span class="checklist-pill pass">✓</span> Offline fallback route configured</li>
+          <li class="checklist-item"><span class="checklist-pill pass">✓</span> Short name &le; 12 characters</li>
+        </ul>
+
+        <div class="bundle-actions">
+          <button class="btn btn-primary" id="downloadZipBtn" style="justify-content:center; width:100%;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+            Download Bundle (.zip)
+          </button>
+          <button class="btn btn-outlined" id="exportManifestBtn" style="justify-content:center; width:100%;">
+            Download manifest.webmanifest
+          </button>
+          <button class="btn btn-outlined" id="exportSwBtn" style="justify-content:center; width:100%;">
+            Download sw.js
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    // Templates Database
+    const PRESETS = {
+      "ecommerce": {
+        name: "E-Commerce Storefront",
+        short_name: "Store",
+        description: "Mobile e-commerce shopping experience with instant offline catalog and cart persistence.",
+        theme_color: "#059669",
+        background_color: "#ffffff",
+        display: "standalone",
+        orientation: "portrait-primary",
+        glyph: "S",
+        strategy: "StaleWhileRevalidate"
+      },
+      "game": {
+        name: "Arcade Space Shooter",
+        short_name: "Arcade",
+        description: "Immersive fullscreen web game with instant offline play and asset precaching.",
+        theme_color: "#7c3aed",
+        background_color: "#0f172a",
+        display: "fullscreen",
+        orientation: "landscape",
+        glyph: "🎮",
+        strategy: "CacheFirst"
+      },
+      "productivity": {
+        name: "Productivity Workspace",
+        short_name: "WorkSpace",
+        description: "Offline-first task management, note taking, and document workspace.",
+        theme_color: "#1a73e8",
+        background_color: "#f8f9fa",
+        display: "standalone",
+        orientation: "any",
+        glyph: "W",
+        strategy: "StaleWhileRevalidate"
+      },
+      "dashboard": {
+        name: "SaaS Analytics Console",
+        short_name: "Dashboard",
+        description: "Real-time metrics, telemetry, and business intelligence console.",
+        theme_color: "#0284c7",
+        background_color: "#0b0f19",
+        display: "standalone",
+        orientation: "any",
+        glyph: "📊",
+        strategy: "NetworkFirst"
+      },
+      "social": {
+        name: "Social Community Network",
+        short_name: "Community",
+        description: "Real-time feeds, discussions, and creator messaging.",
+        theme_color: "#db2777",
+        background_color: "#18181b",
+        display: "standalone",
+        orientation: "portrait-primary",
+        glyph: "C",
+        strategy: "StaleWhileRevalidate"
+      },
+      "media": {
+        name: "Audio & Video Media Player",
+        short_name: "Player",
+        description: "Rich offline media player with stream caching and background audio.",
+        theme_color: "#ea580c",
+        background_color: "#121212",
+        display: "standalone",
+        orientation: "any",
+        glyph: "▶",
+        strategy: "CacheFirst"
+      },
+      "offline-doc": {
+        name: "Offline Technical Docs",
+        short_name: "Docs",
+        description: "Comprehensive offline technical documentation and API handbook.",
+        theme_color: "#475569",
+        background_color: "#ffffff",
+        display: "standalone",
+        orientation: "any",
+        glyph: "📚",
+        strategy: "CacheFirst"
+      },
+      "fitness": {
+        name: "Pulse Fitness Tracker",
+        short_name: "Pulse",
+        description: "Personal workout, cardio, and nutrition tracking PWA.",
+        theme_color: "#dc2626",
+        background_color: "#18181b",
+        display: "standalone",
+        orientation: "portrait",
+        glyph: "⚡",
+        strategy: "StaleWhileRevalidate"
+      },
+      "travel": {
+        name: "Wanderlust Travel Guide",
+        short_name: "Travel",
+        description: "Offline itineraries, city maps, and flight booking assistant.",
+        theme_color: "#0d9488",
+        background_color: "#ffffff",
+        display: "standalone",
+        orientation: "any",
+        glyph: "✈",
+        strategy: "NetworkFirst"
+      },
+      "food": {
+        name: "QuickBite Food Delivery",
+        short_name: "QuickBite",
+        description: "Live restaurant menus, fast food delivery, and order tracking.",
+        theme_color: "#f59e0b",
+        background_color: "#ffffff",
+        display: "standalone",
+        orientation: "portrait-primary",
+        glyph: "🍔",
+        strategy: "NetworkFirst"
+      },
+      "portfolio": {
+        name: "Developer Portfolio & CV",
+        short_name: "Portfolio",
+        description: "Interactive modern portfolio and project showcase.",
+        theme_color: "#6366f1",
+        background_color: "#0f172a",
+        display: "standalone",
+        orientation: "any",
+        glyph: "P",
+        strategy: "StaleWhileRevalidate"
+      },
+      "minimal": {
+        name: "Minimal Progressive Web App",
+        short_name: "MinimalPWA",
+        description: "Clean W3C compliant baseline PWA configuration.",
+        theme_color: "#1a73e8",
+        background_color: "#ffffff",
+        display: "standalone",
+        orientation: "any",
+        glyph: "M",
+        strategy: "StaleWhileRevalidate"
+      }
+    };
+
+    // State
+    let currentCodeTab = 'code-manifest';
+
+    // Elements
+    const templateSelect = document.getElementById('templateSelect');
+    const appName = document.getElementById('appName');
+    const appShortName = document.getElementById('appShortName');
+    const appDesc = document.getElementById('appDesc');
+    const themeColorPicker = document.getElementById('themeColorPicker');
+    const themeColorText = document.getElementById('themeColorText');
+    const bgColorPicker = document.getElementById('bgColorPicker');
+    const bgColorText = document.getElementById('bgColorText');
+    const appLang = document.getElementById('appLang');
+    const appDir = document.getElementById('appDir');
+    const displayMode = document.getElementById('displayMode');
+    const orientationMode = document.getElementById('orientationMode');
+    const startUrl = document.getElementById('startUrl');
+    const scopeUrl = document.getElementById('scopeUrl');
+    const shortcutTitle = document.getElementById('shortcutTitle');
+    const shortcutUrl = document.getElementById('shortcutUrl');
+    const swCacheName = document.getElementById('swCacheName');
+    const swCacheVer = document.getElementById('swCacheVer');
+    const swStrategy = document.getElementById('swStrategy');
+    const precacheAssets = document.getElementById('precacheAssets');
+    const iconGlyph = document.getElementById('iconGlyph');
+    const iconFgColor = document.getElementById('iconFgColor');
+
+    // UI Viewport Elements
+    const btnPreviewMode = document.getElementById('btnPreviewMode');
+    const btnCodeMode = document.getElementById('btnCodeMode');
+    const deviceStage = document.getElementById('deviceStage');
+    const codeStage = document.getElementById('codeStage');
+    const mockupSelector = document.getElementById('mockupScreenSelectorCard');
+    const codeOutputBox = document.getElementById('codeOutputBox');
+
+    // Phone Elements
+    const installIconPreview = document.getElementById('installIconPreview');
+    const installAppName = document.getElementById('installAppName');
+    const installAppDesc = document.getElementById('installAppDesc');
+    const splashIcon = document.getElementById('splashIcon');
+    const splashTitle = document.getElementById('splashTitle');
+    const splashContainer = document.getElementById('splashContainer');
+    const homeIcon = document.getElementById('homeIcon');
+    const homeLabel = document.getElementById('homeLabel');
+
+    // Audit Gauge Elements
+    const gaugeFillCircle = document.getElementById('gaugeFillCircle');
+    const gaugeScoreNumber = document.getElementById('gaugeScoreNumber');
+    const gaugeStatusText = document.getElementById('gaugeStatusText');
+    const auditPassedCount = document.getElementById('auditPassedCount');
+    const auditChecklist = document.getElementById('auditChecklist');
+
+    // Color sync
+    themeColorPicker.addEventListener('input', (e) => {
+      themeColorText.value = e.target.value;
+      updateAll();
+    });
+    themeColorText.addEventListener('input', (e) => {
+      themeColorPicker.value = e.target.value;
+      updateAll();
+    });
+    bgColorPicker.addEventListener('input', (e) => {
+      bgColorText.value = e.target.value;
+      updateAll();
+    });
+    bgColorText.addEventListener('input', (e) => {
+      bgColorPicker.value = e.target.value;
+      updateAll();
+    });
+
+    // Theme Toggle
+    document.getElementById('themeToggleBtn').addEventListener('click', () => {
+      const html = document.documentElement;
+      const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', nextTheme);
+    });
+
+    // Configurator Tabs
+    document.querySelectorAll('.tab-btn[data-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+        btn.classList.add('active');
+        document.getElementById(btn.getAttribute('data-tab')).style.display = 'block';
+      });
+    });
+
+    // Code Tabs
+    document.querySelectorAll('.tab-btn[data-code-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn[data-code-tab]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentCodeTab = btn.getAttribute('data-code-tab');
+        renderCode();
+      });
+    });
+
+    // View Mode Toggle (Preview vs Code)
+    btnPreviewMode.addEventListener('click', () => {
+      btnPreviewMode.classList.add('active');
+      btnCodeMode.classList.remove('active');
+      deviceStage.style.display = 'flex';
+      codeStage.classList.remove('active');
+      mockupSelector.style.display = 'block';
+    });
+
+    btnCodeMode.addEventListener('click', () => {
+      btnCodeMode.classList.add('active');
+      btnPreviewMode.classList.remove('active');
+      deviceStage.style.display = 'none';
+      codeStage.classList.add('active');
+      mockupSelector.style.display = 'none';
+      renderCode();
+    });
+
+    // Phone Screen View Selector
+    document.querySelectorAll('.segmented-btn[data-screen]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.segmented-btn[data-screen]').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.screen-view').forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.getAttribute('data-screen')).classList.add('active');
+      });
+    });
+
+    // Template Picker Change
+    templateSelect.addEventListener('change', (e) => {
+      const t = PRESETS[e.target.value];
+      if (!t) return;
+      appName.value = t.name;
+      appShortName.value = t.short_name;
+      appDesc.value = t.description;
+      themeColorPicker.value = t.theme_color;
+      themeColorText.value = t.theme_color;
+      bgColorPicker.value = t.background_color;
+      bgColorText.value = t.background_color;
+      displayMode.value = t.display;
+      orientationMode.value = t.orientation;
+      iconGlyph.value = t.glyph || t.name[0];
+      swStrategy.value = t.strategy || 'StaleWhileRevalidate';
+      updateAll();
+    });
+
+    // Live update listeners
+    [appName, appShortName, appDesc, displayMode, orientationMode, startUrl, scopeUrl,
+     shortcutTitle, shortcutUrl, swCacheName, swCacheVer, swStrategy, precacheAssets, iconGlyph, iconFgColor].forEach(el => {
+      el.addEventListener('input', updateAll);
+    });
+
+    function buildCurrentManifest() {
+      const glyph = iconGlyph.value.trim() || appName.value.trim().slice(0, 1) || 'P';
+      return {
+        name: appName.value,
+        short_name: appShortName.value || appName.value.slice(0, 12),
+        description: appDesc.value,
+        start_url: startUrl.value,
+        scope: scopeUrl.value,
+        display: displayMode.value,
+        orientation: orientationMode.value,
+        theme_color: themeColorText.value,
+        background_color: bgColorText.value,
+        lang: appLang.value,
+        dir: appDir.value,
+        icons: [
+          {
+            src: `/icons/icon-192x192.png`,
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: `/icons/icon-512x512.png`,
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: `/icons/maskable-512x512.png`,
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable"
+          }
+        ],
+        shortcuts: [
+          {
+            name: shortcutTitle.value,
+            url: shortcutUrl.value,
+            short_name: shortcutTitle.value.slice(0, 8),
+            description: `Quick shortcut for ${shortcutTitle.value}`
+          }
+        ]
+      };
+    }
+
+    function buildCurrentServiceWorker() {
+      const precache = precacheAssets.value.split(',').map(s => s.trim()).filter(Boolean);
+      return `/**
+ * Service Worker Synthesized by Google PWA Studio
+ * Cache: ${swCacheName.value}-${swCacheVer.value} | Strategy: ${swStrategy.value}
+ */
+'use strict';
+
+const CACHE_NAME = '${swCacheName.value}-${swCacheVer.value}';
+const PRECACHE_ASSETS = ${JSON.stringify(precache, null, 2)};
+const OFFLINE_FALLBACK = '/offline.html';
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('[SW] Precaching app shell');
+      return cache.addAll(PRECACHE_ASSETS);
+    }).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null)
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  
+  // Strategy: ${swStrategy.value}
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      const fetchPromise = fetch(event.request).then((networkRes) => {
+        if (networkRes && networkRes.status === 200) {
+          const clone = networkRes.clone();
+          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+        }
+        return networkRes;
+      }).catch(() => {
+        if (event.request.mode === 'navigate') {
+          return caches.match(OFFLINE_FALLBACK);
+        }
+      });
+      return cached || fetchPromise;
+    })
+  );
+});`;
+    }
+
+    function buildCurrentHeadTags() {
+      const m = buildCurrentManifest();
+      return `<!-- PWA Core Metadata & Manifest -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="${m.theme_color}">
+<meta name="application-name" content="${m.short_name}">
+<meta name="description" content="${m.description}">
+
+<!-- Apple iOS PWA Capabilities -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="${m.short_name}">
+<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
+<!-- ServiceWorker Registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js', { scope: '${m.scope}' })
+        .then(reg => console.log('[PWA] SW registered:', reg.scope))
+        .catch(err => console.error('[PWA] SW failed:', err));
+    });
+  }
+</` + `script>`;
+    }
+
+    function buildCurrentOfflineHtml() {
+      const m = buildCurrentManifest();
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline | ${m.name}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: ${m.background_color}; color: #202124; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; padding: 20px; }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { margin-bottom: 8px; font-size: 24px; color: ${m.theme_color}; }
+    p { color: #5f6368; max-width: 400px; margin-bottom: 24px; }
+    button { background: ${m.theme_color}; color: white; border: none; padding: 10px 24px; border-radius: 20px; font-weight: 500; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="icon">📡</div>
+  <h1>You're currently offline</h1>
+  <p>${m.name} is ready for offline use. Reconnect to sync latest updates.</p>
+  <button onclick="window.location.reload()">Retry Connection</button>
+</body>
+</html>`;
+    }
+
+    function renderCode() {
+      if (currentCodeTab === 'code-manifest') {
+        codeOutputBox.textContent = JSON.stringify(buildCurrentManifest(), null, 2);
+      } else if (currentCodeTab === 'code-sw') {
+        codeOutputBox.textContent = buildCurrentServiceWorker();
+      } else if (currentCodeTab === 'code-head') {
+        codeOutputBox.textContent = buildCurrentHeadTags();
+      } else if (currentCodeTab === 'code-offline') {
+        codeOutputBox.textContent = buildCurrentOfflineHtml();
+      }
+    }
+
+    function updateMockup() {
+      const m = buildCurrentManifest();
+      const glyph = iconGlyph.value.trim() || m.name.slice(0, 1) || 'P';
+
+      // Update colors
+      installIconPreview.style.background = m.theme_color;
+      installIconPreview.style.color = iconFgColor.value;
+      installIconPreview.textContent = glyph;
+      installAppName.textContent = m.name;
+      installAppDesc.textContent = m.description;
+
+      splashContainer.style.background = m.background_color;
+      splashIcon.style.background = m.theme_color;
+      splashIcon.style.color = iconFgColor.value;
+      splashIcon.textContent = glyph;
+      splashTitle.textContent = m.name;
+
+      homeIcon.style.background = m.theme_color;
+      homeIcon.style.color = iconFgColor.value;
+      homeIcon.textContent = glyph;
+      homeLabel.textContent = m.short_name;
+    }
+
+    function runAudit() {
+      const m = buildCurrentManifest();
+      const checks = [
+        { title: "Web App Manifest provided", pass: Boolean(m.name) },
+        { title: "Valid start_url and scope", pass: Boolean(m.start_url && m.scope) },
+        { title: "Display mode is standalone/fullscreen", pass: ['standalone', 'fullscreen', 'minimal-ui'].includes(m.display) },
+        { title: "Required 192x192 & 512x512 icons", pass: m.icons && m.icons.length >= 2 },
+        { title: "Adaptive maskable icon included", pass: m.icons && m.icons.some(i => i.purpose && i.purpose.includes('maskable')) },
+        { title: "Theme color & background color set", pass: Boolean(m.theme_color && m.background_color) },
+        { title: "ServiceWorker registered with fetch", pass: true },
+        { title: "Offline fallback route configured", pass: precacheAssets.value.includes('offline.html') },
+        { title: "Short name \u2264 12 characters", pass: m.short_name && m.short_name.length <= 12 }
+      ];
+
+      const passCount = checks.filter(c => c.pass).length;
+      const score = Math.round((passCount / checks.length) * 100);
+
+      // Gauge animation
+      const circumference = 377; // 2 * pi * 60
+      const offset = circumference - (score / 100) * circumference;
+      gaugeFillCircle.style.strokeDashoffset = offset;
+      gaugeScoreNumber.textContent = score;
+
+      if (score >= 90) {
+        gaugeFillCircle.style.stroke = "var(--md-sys-color-success)";
+        gaugeStatusText.textContent = "Passed Installability & Quality Gates";
+        gaugeStatusText.style.color = "var(--md-sys-color-success)";
+      } else if (score >= 50) {
+        gaugeFillCircle.style.stroke = "var(--md-sys-color-warning)";
+        gaugeStatusText.textContent = "Warnings Present (Installable)";
+        gaugeStatusText.style.color = "var(--md-sys-color-warning)";
+      } else {
+        gaugeFillCircle.style.stroke = "var(--md-sys-color-error)";
+        gaugeStatusText.textContent = "Failed Installability Criteria";
+        gaugeStatusText.style.color = "var(--md-sys-color-error)";
+      }
+
+      auditPassedCount.textContent = `${passCount}/${checks.length} Passed`;
+      auditChecklist.innerHTML = checks.map(c => `
+        <li class="checklist-item">
+          <span class="checklist-pill ${c.pass ? 'pass' : 'fail'}">${c.pass ? '✓' : '✕'}</span>
+          ${c.title}
+        </li>
+      `).join('');
+    }
+
+    function updateAll() {
+      updateMockup();
+      runAudit();
+      if (codeStage.classList.contains('active')) {
+        renderCode();
+      }
+    }
+
+    // Copy to clipboard
+    document.getElementById('copyManifestBtn').addEventListener('click', () => {
+      const text = JSON.stringify(buildCurrentManifest(), null, 2);
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copyManifestBtn');
+        const oldText = btn.innerHTML;
+        btn.innerHTML = '✓ Copied!';
+        setTimeout(() => { btn.innerHTML = oldText; }, 1500);
+      });
+    });
+
+    // File Downloads
+    function downloadTextFile(filename, content, mime = 'text/plain') {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('exportManifestBtn').addEventListener('click', () => {
+      downloadTextFile('manifest.webmanifest', JSON.stringify(buildCurrentManifest(), null, 2), 'application/manifest+json');
+    });
+
+    document.getElementById('exportSwBtn').addEventListener('click', () => {
+      downloadTextFile('sw.js', buildCurrentServiceWorker(), 'application/javascript');
+    });
+
+    // Download ZIP Bundle via Backend API or fallback
+    async function downloadBundle() {
+      const manifest = buildCurrentManifest();
+      const payload = {
+        manifest: manifest,
+        sw_config: {
+          cache_name: swCacheName.value,
+          cache_version: swCacheVer.value,
+          caching_strategy: swStrategy.value,
+          precache_urls: precacheAssets.value.split(',').map(s => s.trim()).filter(Boolean),
+          offline_fallback_url: '/offline.html'
+        }
+      };
+
+      try {
+        const resp = await fetch('/api/bundle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (resp.ok) {
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${manifest.short_name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-pwa-bundle.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          return;
+        }
+      } catch (err) {
+        console.warn('Backend bundle endpoint failed or offline, downloading individual files:', err);
+      }
+
+      // Fallback: download manifest directly
+      downloadTextFile('manifest.webmanifest', JSON.stringify(manifest, null, 2), 'application/manifest+json');
+    }
+
+    document.getElementById('downloadZipBtn').addEventListener('click', downloadBundle);
+    document.getElementById('downloadBundleHeaderBtn').addEventListener('click', downloadBundle);
+
+    // Initial setup
+    updateAll();
+  </script>
+</body>
+</html>
