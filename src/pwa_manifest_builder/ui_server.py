@@ -53,6 +53,7 @@ from .icon_forge import (
 )
 from .linter import validate_manifest, is_valid_color
 from .catalog import list_templates, get_template, generate_from_template
+from .shortcuts_simulator import simulate_app_shortcuts, validate_protocol_handlers
 
 SERVER_VERSION = "1.0.0"
 SERVER_START_TIME = time.time()
@@ -225,6 +226,20 @@ class PWARequestHandler(BaseHTTPRequestHandler):
             })
             return
 
+        # 7. Shortcuts Info (GET)
+        if path == "/api/shortcuts":
+            sample = [{"name": "Quick Action", "url": "/quick", "short_name": "Quick"}]
+            rep = simulate_app_shortcuts(sample)
+            self._send_json_response({"status": "ok", "sample_report": rep.to_dict()})
+            return
+
+        # 8. Protocol Handlers Info (GET)
+        if path == "/api/protocols":
+            sample = [{"protocol": "web+pwa", "url": "/open?action=%s"}]
+            rep = validate_protocol_handlers(sample)
+            self._send_json_response({"status": "ok", "sample_report": rep.to_dict()})
+            return
+
         # Static assets fallback (if public folder has files)
         static_file = Path(__file__).resolve().parent.parent.parent / "public" / path.lstrip("/")
         if static_file.is_file():
@@ -342,7 +357,30 @@ class PWARequestHandler(BaseHTTPRequestHandler):
                 self._send_json_response({"error": f"Failed to audit manifest: {str(e)}"}, status=400)
             return
 
-        # 5. Export Complete PWA ZIP Bundle
+        # 5. App Shortcuts Simulation & Deep-Link Router Generation
+        if path == "/api/shortcuts":
+            try:
+                shortcuts_data = body.get("shortcuts", body if isinstance(body, list) else [])
+                scope = body.get("scope", "/")
+                manifest_url = body.get("manifest_url", "/")
+                report = simulate_app_shortcuts(shortcuts_data, manifest_url=manifest_url, scope=scope)
+                self._send_json_response(report.to_dict())
+            except Exception as e:
+                self._send_json_response({"error": f"Failed to simulate shortcuts: {str(e)}"}, status=400)
+            return
+
+        # 6. Protocol Handlers Validation & Snippet Generation
+        if path == "/api/protocols":
+            try:
+                handlers_data = body.get("protocol_handlers", body.get("protocols", body if isinstance(body, list) else []))
+                scope = body.get("scope", "/")
+                report = validate_protocol_handlers(handlers_data, scope=scope)
+                self._send_json_response(report.to_dict())
+            except Exception as e:
+                self._send_json_response({"error": f"Failed to validate protocol handlers: {str(e)}"}, status=400)
+            return
+
+        # 7. Export Complete PWA ZIP Bundle
         if path in ("/api/bundle", "/api/export-zip"):
             try:
                 manifest_data = body.get("manifest", {})

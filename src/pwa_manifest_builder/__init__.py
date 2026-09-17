@@ -19,8 +19,19 @@ from .models import (
     IconSpec,
     ShortcutSpec,
     ShareTargetSpec,
+    ProtocolHandlerSpec,
+    ShortcutSimulatorResult,
+    ShortcutSuiteReport,
+    ProtocolHandlerValidationReport,
     PWAValidationIssue,
     PWAValidationReport,
+)
+
+# Shortcuts & Protocol Handlers
+from .shortcuts_simulator import (
+    simulate_app_shortcuts,
+    validate_protocol_handlers,
+    is_valid_protocol_scheme,
 )
 
 # Manifest Generation
@@ -102,8 +113,16 @@ __all__ = [
     "IconSpec",
     "ShortcutSpec",
     "ShareTargetSpec",
+    "ProtocolHandlerSpec",
+    "ShortcutSimulatorResult",
+    "ShortcutSuiteReport",
+    "ProtocolHandlerValidationReport",
     "PWAValidationIssue",
     "PWAValidationReport",
+    # Shortcuts & Protocols
+    "simulate_app_shortcuts",
+    "validate_protocol_handlers",
+    "is_valid_protocol_scheme",
     # Manifest
     "generate_manifest_dict",
     "generate_manifest_json",

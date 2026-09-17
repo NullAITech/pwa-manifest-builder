@@ -178,7 +178,32 @@ class ShareTargetSpec:
             action=data.get("action", ""),
             method=data.get("method", "GET"),
             enctype=data.get("enctype", "application/x-www-form-urlencoded"),
-            params=data.get("params", {})
+            params=data.get("params", {}),
+        )
+
+
+@dataclass
+class ProtocolHandlerSpec:
+    """Specification for URL Protocol Handlers API in the manifest."""
+    protocol: str
+    url: str
+    title: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "protocol": self.protocol,
+            "url": self.url,
+        }
+        if self.title:
+            d["title"] = self.title
+        return d
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> ProtocolHandlerSpec:
+        return cls(
+            protocol=str(data.get("protocol", "")),
+            url=str(data.get("url", "")),
+            title=data.get("title"),
         )
 
 
@@ -288,7 +313,9 @@ class PWAManifestConfig:
         if self.share_target:
             d["share_target"] = self.share_target.to_dict() if isinstance(self.share_target, ShareTargetSpec) else self.share_target
         if self.protocol_handlers:
-            d["protocol_handlers"] = self.protocol_handlers
+            d["protocol_handlers"] = [
+                h.to_dict() if hasattr(h, "to_dict") else h for h in self.protocol_handlers
+            ]
         if self.file_handlers:
             d["file_handlers"] = self.file_handlers
         if self.i18n:
@@ -300,11 +327,37 @@ class PWAManifestConfig:
         """Serializes manifest to formatted JSON string."""
         return json.dumps(self.to_dict(), indent=indent, ensure_ascii=False) + "\n"
 
+    def add_protocol_handler(
+        self,
+        protocol: str,
+        url: str,
+        title: Optional[str] = None,
+    ) -> ProtocolHandlerSpec:
+        """Helper to append a URL protocol handler to the manifest configuration."""
+        handler = ProtocolHandlerSpec(protocol=protocol, url=url, title=title)
+        self.protocol_handlers.append(handler)
+        return handler
+
+    def simulate_shortcuts(self) -> ShortcutSuiteReport:
+        """Simulate App Shortcuts action events and validate icon assets."""
+        from .shortcuts_simulator import simulate_app_shortcuts
+        return simulate_app_shortcuts(self)
+
+    def validate_protocols(self) -> ProtocolHandlerValidationReport:
+        """Validate URL protocol handlers against W3C specification."""
+        from .shortcuts_simulator import validate_protocol_handlers
+        return validate_protocol_handlers(self)
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> PWAManifestConfig:
         """Constructs a PWAManifestConfig instance from a dictionary."""
         icons = [IconSpec.from_dict(i) if isinstance(i, dict) else i for i in data.get("icons", [])]
         shortcuts = [ShortcutSpec.from_dict(s) if isinstance(s, dict) else s for s in data.get("shortcuts", [])]
+        raw_protocols = data.get("protocol_handlers", [])
+        protocol_handlers = [
+            ProtocolHandlerSpec.from_dict(h) if isinstance(h, dict) else h
+            for h in raw_protocols
+        ]
         share_target = None
         if data.get("share_target"):
             st = data["share_target"]
@@ -330,7 +383,7 @@ class PWAManifestConfig:
             prefer_related_applications=data.get("prefer_related_applications", False),
             id=data.get("id"),
             share_target=share_target,
-            protocol_handlers=data.get("protocol_handlers", []),
+            protocol_handlers=protocol_handlers,
             file_handlers=data.get("file_handlers", []),
             display_override=data.get("display_override", []),
             i18n=data.get("i18n", {})
@@ -439,4 +492,141 @@ class PWAValidationReport:
             "passed_checks": self.passed_checks,
             "meta_tags_html": self.meta_tags_html,
             "summary": self.summary()
+        }
+
+
+@dataclass
+class ShortcutSimulatorResult:
+    """Individual shortcut simulation assessment."""
+    name: str
+    url: str
+    short_name: Optional[str] = None
+    has_icons: bool = False
+    icon_sizes: List[str] = field(default_factory=list)
+    has_monochrome_icon: bool = False
+    is_valid: bool = True
+    issues: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
+    sample_event_handler: str = ""
+
+    @property
+    def has_recommended_sizes(self) -> bool:
+        return any(sz in ("96x96", "192x192") for sz in self.icon_sizes)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "url": self.url,
+            "short_name": self.short_name,
+            "has_icons": self.has_icons,
+            "icon_sizes": self.icon_sizes,
+            "has_monochrome_icon": self.has_monochrome_icon,
+            "has_recommended_sizes": self.has_recommended_sizes,
+            "is_valid": self.is_valid,
+            "issues": self.issues,
+            "warnings": self.warnings,
+            "sample_event_handler": self.sample_event_handler,
+        }
+
+
+@dataclass
+class ShortcutSuiteReport:
+    """Overall report and client-side router simulation for App Shortcuts."""
+    shortcuts: List[ShortcutSimulatorResult]
+    total_count: int
+    android_ready: bool
+    windows_ready: bool
+    warnings: List[str]
+    client_router_js: str
+
+    @property
+    def total_shortcuts(self) -> int:
+        return self.total_count
+
+    @property
+    def global_warnings(self) -> List[str]:
+        return self.warnings
+
+    @property
+    def has_exceeded_platform_limit(self) -> bool:
+        return self.total_count > 4
+
+    @property
+    def client_deep_link_router_js(self) -> str:
+        return self.client_router_js
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "total_count": self.total_count,
+            "total_shortcuts": self.total_count,
+            "android_ready": self.android_ready,
+            "windows_ready": self.windows_ready,
+            "warnings": self.warnings,
+            "global_warnings": self.warnings,
+            "has_exceeded_platform_limit": self.has_exceeded_platform_limit,
+            "shortcuts": [s.to_dict() for s in self.shortcuts],
+            "client_router_js": self.client_router_js,
+            "client_deep_link_router_js": self.client_router_js,
+        }
+
+
+@dataclass
+class ProtocolHandlerItem:
+    """Individual protocol handler validation evaluation."""
+    protocol: str
+    url: str
+    title: Optional[str] = None
+    is_valid: bool = True
+    issues: List[str] = field(default_factory=list)
+    error_code: Optional[str] = None
+
+    def __getitem__(self, key: str) -> Any:
+        return getattr(self, key)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "protocol": self.protocol,
+            "url": self.url,
+            "title": self.title,
+            "is_valid": self.is_valid,
+            "issues": self.issues,
+            "error_code": self.error_code,
+        }
+
+
+@dataclass
+class ProtocolHandlerValidationReport:
+    """Validation report and browser registration script for URL Protocol Handlers."""
+    is_valid: bool
+    valid_count: int
+    invalid_count: int
+    handlers: List[Any]
+    errors: List[str]
+    warnings: List[str]
+    registration_script: str
+
+    @property
+    def valid_handlers(self) -> List[Any]:
+        return [h for h in self.handlers if (isinstance(h, dict) and h.get("is_valid")) or (hasattr(h, "is_valid") and h.is_valid)]
+
+    @property
+    def invalid_handlers(self) -> List[Any]:
+        return [h for h in self.handlers if (isinstance(h, dict) and not h.get("is_valid")) or (hasattr(h, "is_valid") and not h.is_valid)]
+
+    @property
+    def registration_snippet_js(self) -> str:
+        return self.registration_script
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "is_valid": self.is_valid,
+            "valid_count": self.valid_count,
+            "invalid_count": self.invalid_count,
+            "handlers": [h.to_dict() if hasattr(h, "to_dict") else h for h in self.handlers],
+            "valid_handlers": [h.to_dict() if hasattr(h, "to_dict") else h for h in self.valid_handlers],
+            "invalid_handlers": [h.to_dict() if hasattr(h, "to_dict") else h for h in self.invalid_handlers],
+            "errors": self.errors,
+            "warnings": self.warnings,
+            "registration_script": self.registration_script,
+            "registration_snippet_js": self.registration_script,
         }

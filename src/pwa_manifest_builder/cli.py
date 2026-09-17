@@ -993,6 +993,127 @@ def cmd_serve(args: argparse.Namespace, color_ok: bool) -> int:
         return 1
 
 
+def cmd_shortcuts(args: argparse.Namespace, color_ok: bool) -> int:
+    """Audit and simulate App Shortcuts and generate client router."""
+    from .shortcuts_simulator import simulate_app_shortcuts
+    from .catalog import get_template
+
+    target = getattr(args, "target", None)
+    template_id = getattr(args, "template", None) or (target if target in TEMPLATES else None)
+    manifest_file = getattr(args, "file", None) or (target if target and Path(target).is_file() else None)
+
+    shortcuts = []
+    if getattr(args, "demo", False):
+        shortcuts = [
+            {"name": "Quick Search", "url": "/search", "short_name": "Search", "icons": [{"src": "/i96.png", "sizes": "96x96"}]},
+            {"name": "New Document", "url": "/new", "short_name": "New", "icons": [{"src": "/i192.png", "sizes": "192x192"}, {"src": "/mono.png", "sizes": "96x96", "purpose": "monochrome"}]},
+        ]
+    elif manifest_file:
+        data = read_json_safe(manifest_file)
+        if isinstance(data, dict):
+            shortcuts = data.get("shortcuts", [])
+    elif template_id:
+        tmpl = get_template(template_id)
+        if tmpl and tmpl.manifest:
+            shortcuts = tmpl.manifest.shortcuts
+    elif not target:
+        shortcuts = [
+            {"name": "Quick Search", "url": "/search", "short_name": "Search", "icons": [{"src": "/i96.png", "sizes": "96x96"}]},
+            {"name": "New Document", "url": "/new", "short_name": "New", "icons": [{"src": "/i192.png", "sizes": "192x192"}]},
+        ]
+
+    report = simulate_app_shortcuts(shortcuts)
+
+    if getattr(args, "json", False):
+        print(json.dumps(report.to_dict(), indent=2))
+        return 0
+
+    print(f"\n{colorize('--- PWA App Shortcuts Simulator ---', Color.BOLD + Color.CYAN, color_ok)}")
+    print(f"Configured Shortcuts : {report.total_count}")
+    print(f"Android Ready        : {colorize('YES', Color.GREEN, color_ok) if report.android_ready else colorize('NO', Color.YELLOW, color_ok)}")
+    print(f"Windows Taskbar Ready: {colorize('YES', Color.GREEN, color_ok) if report.windows_ready else colorize('NO', Color.YELLOW, color_ok)}")
+
+    if report.warnings:
+        print(f"\n{colorize('Warnings:', Color.YELLOW, color_ok)}")
+        for w in report.warnings:
+            print(f"  • {w}")
+
+    print(f"\n{colorize('Shortcuts Roster:', Color.BOLD, color_ok)}")
+    for s in report.shortcuts:
+        status = colorize('VALID', Color.GREEN, color_ok) if s.is_valid else colorize('INVALID', Color.RED, color_ok)
+        mono = " [Monochrome Icon]" if s.has_monochrome_icon else ""
+        print(f"  • {s.name} ({s.url}) - {status}{mono}")
+
+    if getattr(args, "output", None):
+        atomic_write_text(args.output, report.client_router_js)
+        print(f"\n{colorize('✔ Saved shortcut router JS to:', Color.GREEN, color_ok)} {args.output}")
+    elif getattr(args, "router", False):
+        print(f"\n{colorize('Client-Side Router JS:', Color.BOLD, color_ok)}")
+        print(report.client_router_js)
+
+    return 0
+
+
+def cmd_protocol(args: argparse.Namespace, color_ok: bool) -> int:
+    """Validate URL Protocol Handlers and generate registration script."""
+    from .shortcuts_simulator import validate_protocol_handlers
+    from .catalog import get_template
+
+    target = getattr(args, "target", None)
+    template_id = getattr(args, "template", None) or (target if target in TEMPLATES else None)
+    manifest_file = getattr(args, "file", None) or (target if target and Path(target).is_file() else None)
+
+    handlers = []
+    scope = getattr(args, "scope", "/") or "/"
+
+    if getattr(args, "protocol", None) and getattr(args, "url", None):
+        handlers = [{"protocol": args.protocol, "url": args.url, "title": getattr(args, "title", None)}]
+    elif manifest_file:
+        data = read_json_safe(manifest_file)
+        if isinstance(data, dict):
+            handlers = data.get("protocol_handlers", [])
+            scope = data.get("scope", scope)
+    elif template_id:
+        tmpl = get_template(template_id)
+        if tmpl and tmpl.manifest:
+            handlers = tmpl.manifest.protocol_handlers
+            scope = tmpl.manifest.scope or scope
+
+    report = validate_protocol_handlers(handlers, scope=scope)
+
+    if getattr(args, "json", False):
+        print(json.dumps(report.to_dict(), indent=2))
+        return 0
+
+    print(f"\n{colorize('--- URL Protocol Handlers Audit ---', Color.BOLD + Color.CYAN, color_ok)}")
+    status_str = colorize('VALID', Color.GREEN, color_ok) if report.is_valid else colorize('INVALID', Color.RED, color_ok)
+    print(f"Protocol Compliance  : {status_str} ({report.valid_count} valid, {report.invalid_count} invalid)")
+
+    if report.errors:
+        print(f"\n{colorize('Errors:', Color.RED, color_ok)}")
+        for err in report.errors:
+            print(f"  ✖ {err}")
+
+    if report.warnings:
+        print(f"\n{colorize('Warnings:', Color.YELLOW, color_ok)}")
+        for warn in report.warnings:
+            print(f"  • {warn}")
+
+    print(f"\n{colorize('Handlers:', Color.BOLD, color_ok)}")
+    for h in report.handlers:
+        st = colorize('OK', Color.GREEN, color_ok) if h['is_valid'] else colorize('ERR', Color.RED, color_ok)
+        print(f"  • {h['protocol']} -> {h['url']} [{st}]")
+
+    if getattr(args, "output", None):
+        atomic_write_text(args.output, report.registration_script)
+        print(f"\n{colorize('✔ Saved registration script to:', Color.GREEN, color_ok)} {args.output}")
+    elif getattr(args, "script", False):
+        print(f"\n{colorize('Registration JavaScript:', Color.BOLD, color_ok)}")
+        print(report.registration_script)
+
+    return 0 if report.is_valid or len(handlers) == 0 else 1
+
+
 # ============================================================================
 # Internal Self-Verification Test Runner
 # ============================================================================
@@ -1075,7 +1196,7 @@ def cmd_test(args: argparse.Namespace, color_ok: bool) -> int:
         tools_res = handle_jsonrpc_request(tools_req)
         assert isinstance(tools_res, dict)
         tools = tools_res["result"]["tools"]
-        assert len(tools) == 7
+        assert len(tools) == 9
         tool_names = [t["name"] for t in tools]
         assert "pwa_generate_manifest" in tool_names
         assert "pwa_generate_serviceworker" in tool_names
@@ -1084,6 +1205,8 @@ def cmd_test(args: argparse.Namespace, color_ok: bool) -> int:
         assert "pwa_html_meta_tags" in tool_names
         assert "pwa_list_templates" in tool_names
         assert "pwa_diagnostics" in tool_names
+        assert "pwa_simulate_shortcuts" in tool_names
+        assert "pwa_validate_protocol_handlers" in tool_names
 
         # 3. Tool call - pwa_generate_manifest
         call_req = {
@@ -1263,21 +1386,41 @@ def build_parser() -> argparse.ArgumentParser:
     p_tpl.add_argument("--category", help="Filter by category (commerce, gaming, productivity, finance, education, social, entertainment)")
     p_tpl.add_argument("--json", action="store_true", help="Output template catalog as JSON")
 
-    # 7. serve
+    # 7. shortcuts
+    p_sc = subparsers.add_parser("shortcuts", parents=[parent_parser], help="Simulate App Shortcuts action router & validate icons")
+    p_sc.add_argument("target", nargs="?", help="Manifest JSON file path or template ID")
+    p_sc.add_argument("--template", help="Template ID preset to test")
+    p_sc.add_argument("--demo", action="store_true", help="Use built-in demo shortcuts")
+    p_sc.add_argument("--router", action="store_true", help="Print client-side router JavaScript code")
+    p_sc.add_argument("-o", "--output", help="Save client router script to file")
+    p_sc.add_argument("--json", action="store_true", help="Output audit report as JSON")
+
+    # 8. protocol
+    p_proto = subparsers.add_parser("protocol", aliases=["protocols"], parents=[parent_parser], help="Validate URL Protocol Handlers & generate registration script")
+    p_proto.add_argument("target", nargs="?", help="Manifest JSON file path or template ID")
+    p_proto.add_argument("--protocol", help="Protocol scheme to test (e.g., 'web+tea', 'mailto')")
+    p_proto.add_argument("--url", help="URL destination with '%s' placeholder")
+    p_proto.add_argument("--template", help="Template ID preset to test")
+    p_proto.add_argument("--scope", default="/", help="Manifest scope (default: '/')")
+    p_proto.add_argument("--script", action="store_true", help="Print browser registration JavaScript code")
+    p_proto.add_argument("-o", "--output", help="Save registration script to file")
+    p_proto.add_argument("--json", action="store_true", help="Output validation report as JSON")
+
+    # 9. serve
     p_serve = subparsers.add_parser("serve", parents=[parent_parser], help="Launch Google Material 3 PWA Studio Web UI")
     p_serve.add_argument("-p", "--port", type=int, default=8080, help="Port to bind (default: 8080)")
     p_serve.add_argument("-H", "--host", default="127.0.0.1", help="Host interface (default: 127.0.0.1)")
     p_serve.add_argument("--open", action="store_true", help="Automatically open browser on launch")
 
-    # 8. mcp
+    # 10. mcp
     p_mcp = subparsers.add_parser("mcp", parents=[parent_parser], help="Run MCP (Model Context Protocol) server over stdio")
     p_mcp.add_argument("--debug", action="store_true", help="Enable stderr debug logging")
 
-    # 9. diagnostics / doctor / platform
+    # 11. diagnostics / doctor / platform
     p_diag = subparsers.add_parser("diagnostics", aliases=["doctor", "platform"], parents=[parent_parser], help="System diagnostics report")
     p_diag.add_argument("--json", action="store_true", help="Output diagnostics as JSON")
 
-    # 10. test
+    # 12. test
     p_test = subparsers.add_parser("test", parents=[parent_parser], help="Run internal self-verification test suite")
     p_test.add_argument("--verbose", action="store_true", help="Enable verbose failure stacktraces")
     p_test.add_argument("--json", action="store_true", help="Output test results as JSON")
@@ -1325,6 +1468,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_meta(args, color_ok)
     elif subcmd == "templates":
         return cmd_templates(args, color_ok)
+    elif subcmd == "shortcuts":
+        return cmd_shortcuts(args, color_ok)
+    elif subcmd in ["protocol", "protocols"]:
+        return cmd_protocol(args, color_ok)
     elif subcmd == "serve":
         return cmd_serve(args, color_ok)
     elif subcmd == "mcp":

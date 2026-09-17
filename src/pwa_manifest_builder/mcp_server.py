@@ -372,6 +372,41 @@ REGISTERED_TOOLS: List[Dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "pwa_simulate_shortcuts",
+        "description": "Simulate and validate PWA App Shortcuts, verifying icon assets and generating client-side action routing / deep-link dispatcher code.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "shortcuts": {
+                    "type": "array",
+                    "description": "Array of shortcut specifications ({name, url, short_name, icons})",
+                },
+                "template": {
+                    "type": "string",
+                    "description": "Optional preset template ID to load shortcuts from",
+                },
+            },
+        },
+    },
+    {
+        "name": "pwa_validate_protocol_handlers",
+        "description": "Validate URL Protocol Handlers against W3C specification and synthesize client-side navigator.registerProtocolHandler code.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "protocol_handlers": {
+                    "type": "array",
+                    "description": "Array of protocol handlers ({protocol, url, title})",
+                },
+                "scope": {
+                    "type": "string",
+                    "default": "/",
+                    "description": "Manifest scope for URL containment checks",
+                },
+            },
+        },
+    },
 ]
 
 
@@ -779,6 +814,25 @@ def _execute_tool(name: str, args: Dict[str, Any]) -> Tuple[str, bool]:
 
             diag_text = json.dumps(diag, indent=2)
             return f"```json\n{diag_text}\n```", False
+
+        elif name == "pwa_simulate_shortcuts":
+            from .shortcuts_simulator import simulate_app_shortcuts
+            from .catalog import get_template
+            shortcuts = args.get("shortcuts", [])
+            template_id = args.get("template")
+            if template_id and not shortcuts:
+                tmpl = get_template(template_id)
+                if tmpl and tmpl.manifest:
+                    shortcuts = tmpl.manifest.shortcuts
+            report = simulate_app_shortcuts(shortcuts)
+            return json.dumps(report.to_dict(), indent=2), False
+
+        elif name == "pwa_validate_protocol_handlers":
+            from .shortcuts_simulator import validate_protocol_handlers
+            handlers = args.get("protocol_handlers") or args.get("handlers") or []
+            scope = args.get("scope", "/")
+            report = validate_protocol_handlers(handlers, scope=scope)
+            return json.dumps(report.to_dict(), indent=2), False
 
         else:
             return f"Unknown tool: {name}", True

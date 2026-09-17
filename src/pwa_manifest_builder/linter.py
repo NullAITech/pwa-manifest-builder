@@ -354,7 +354,26 @@ def validate_manifest(
         score -= 2
 
     if raw.get("shortcuts"):
-        passed_checks.append(f"App defines {len(raw['shortcuts'])} shortcut actions.")
+        from .shortcuts_simulator import simulate_app_shortcuts
+        suite = simulate_app_shortcuts(raw)
+        passed_checks.append(f"App defines {len(raw['shortcuts'])} shortcut actions (Android ready: {suite.android_ready}, Windows ready: {suite.windows_ready}).")
+        if len(raw["shortcuts"]) > 4:
+            warnings.append(PWAValidationIssue(
+                severity="warning",
+                code="SHORTCUTS_EXCEEDED",
+                message=f"Configured {len(raw['shortcuts'])} shortcuts; Android and Windows taskbars generally display a maximum of 4.",
+                field="shortcuts",
+                fix_suggestion="Limit shortcuts to the 4 most frequent actions."
+            ))
+        for sc in suite.shortcuts:
+            for issue in sc.issues:
+                warnings.append(PWAValidationIssue(
+                    severity="warning",
+                    code="WARN_SHORTCUT_ISSUE",
+                    message=f"Shortcut '{sc.name}': {issue}",
+                    field="shortcuts",
+                    fix_suggestion="Ensure shortcuts have valid URLs and appropriate 96x96/192x192 icons."
+                ))
     else:
         warnings.append(PWAValidationIssue(
             severity="info",
@@ -364,6 +383,31 @@ def validate_manifest(
             fix_suggestion="Add 'shortcuts' for quick actions."
         ))
         score -= 2
+
+    # Protocol Handlers Audit
+    if raw.get("protocol_handlers"):
+        from .shortcuts_simulator import validate_protocol_handlers
+        p_report = validate_protocol_handlers(raw)
+        if p_report.errors:
+            for p_err in p_report.errors:
+                issues.append(PWAValidationIssue(
+                    severity="error",
+                    code="PROTOCOL_HANDLER_INVALID",
+                    message=p_err,
+                    field="protocol_handlers",
+                    fix_suggestion="Use 'web+custom' or safelisted scheme (e.g. 'mailto', 'tel') and include '%s' in URL."
+                ))
+                score -= 5
+        for p_warn in p_report.warnings:
+            warnings.append(PWAValidationIssue(
+                severity="warning",
+                code="WARN_PROTOCOL_HANDLER",
+                message=p_warn,
+                field="protocol_handlers",
+                fix_suggestion="Ensure protocol handler URL is within scope."
+            ))
+        if p_report.valid_count > 0:
+            passed_checks.append(f"App defines {p_report.valid_count} valid URL protocol handler(s).")
 
     if raw.get("screenshots"):
         passed_checks.append(f"App provides {len(raw['screenshots'])} preview screenshots.")
