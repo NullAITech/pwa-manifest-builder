@@ -2,8 +2,8 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Google PWA Studio | PWA Manifest & ServiceWorker Studio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PWA Manifest Studio | PWA Generator & ServiceWorker Suite</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -686,7 +686,7 @@
     <div class="brand-section">
       <div class="brand-logo">P</div>
       <div>
-        <span class="brand-title">Google PWA Studio</span>
+        <span class="brand-title">PWA Manifest Studio</span>
         <span class="brand-subtitle">v1.0.0</span>
       </div>
     </div>
@@ -745,7 +745,7 @@
         <div class="tab-content" id="tab-basic">
           <div class="form-group">
             <label for="appName">Application Name</label>
-            <input type="text" id="appName" class="form-control" value="Google PWA Studio">
+            <input type="text" id="appName" class="form-control" value="PWA Manifest Studio">
           </div>
           <div class="form-group">
             <label for="appShortName">Short Name (Home screen badge)</label>
@@ -917,7 +917,7 @@
                   <div class="install-sheet-top">
                     <div class="install-icon-preview" id="installIconPreview">P</div>
                     <div>
-                      <div class="install-app-title" id="installAppName">Google PWA Studio</div>
+                      <div class="install-app-title" id="installAppName">PWA Manifest Studio</div>
                       <div class="install-app-domain" id="installAppDomain">pwastudio.app</div>
                     </div>
                   </div>
@@ -936,7 +936,7 @@
             <div class="screen-view" id="screenSplash">
               <div class="splash-preview" id="splashContainer">
                 <div class="splash-icon" id="splashIcon">P</div>
-                <div class="splash-title" id="splashTitle">Google PWA Studio</div>
+                <div class="splash-title" id="splashTitle">PWA Manifest Studio</div>
               </div>
             </div>
 
@@ -1366,7 +1366,7 @@
     function buildCurrentServiceWorker() {
       const precache = precacheAssets.value.split(',').map(s => s.trim()).filter(Boolean);
       return `/**
- * Service Worker Synthesized by Google PWA Studio
+ * Service Worker Synthesized by PWA Manifest Studio
  * Cache: ${swCacheName.value}-${swCacheVer.value} | Strategy: ${swStrategy.value}
  */
 'use strict';

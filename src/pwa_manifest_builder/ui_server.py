@@ -78,7 +78,7 @@ EMBEDDED_FALLBACK_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Google PWA Studio</title>
+  <title>PWA Manifest Studio</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; background: #f8f9fa; color: #202124; text-align: center; }
     .card { max-width: 600px; margin: 0 auto; background: white; padding: 32px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -89,7 +89,7 @@ EMBEDDED_FALLBACK_HTML = """<!DOCTYPE html>
 </head>
 <body>
   <div class="card">
-    <h1>Google PWA Studio</h1>
+    <h1>PWA Manifest Studio</h1>
     <p>PWA Manifest & ServiceWorker Studio Server is running.</p>
     <p>API endpoints are active at <code>/api/generate-manifest</code>, <code>/api/generate-sw</code>, <code>/api/audit</code>, <code>/api/bundle</code>.</p>
   </div>
@@ -100,7 +100,7 @@ EMBEDDED_FALLBACK_HTML = """<!DOCTYPE html>
 class PWARequestHandler(BaseHTTPRequestHandler):
     """HTTP Request Handler for PWA Studio UI and REST Endpoints."""
 
-    server_version = f"GooglePWAStudio/{SERVER_VERSION}"
+    server_version = f"PWAManifestStudio/{SERVER_VERSION}"
 
     def log_message(self, format: str, *args: Any) -> None:
         """Custom clean logging."""
@@ -213,7 +213,7 @@ class PWARequestHandler(BaseHTTPRequestHandler):
         # 6. Diagnostics
         if path == "/api/diagnostics":
             self._send_json_response({
-                "server_name": "Google PWA Studio UI Server",
+                "server_name": "PWA Manifest Studio UI Server",
                 "version": SERVER_VERSION,
                 "python_version": sys.version,
                 "platform": platform.platform(),
@@ -505,14 +505,14 @@ def start_ui_server(host: str = "127.0.0.1", port: int = 8080, open_browser: boo
     """Runs the studio UI server blocking in the main thread (for CLI)."""
     server_manager = PWAServer(host=host, port=port)
     url = server_manager.start(open_browser=open_browser)
-    print(f"\n🚀 Google PWA Studio UI running at: {url}")
+    print(f"\n🚀 PWA Manifest Studio UI running at: {url}")
     print("Press Ctrl+C to stop the studio server.\n")
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\nStopping Google PWA Studio UI Server...")
+        print("\nStopping PWA Manifest Studio UI Server...")
         server_manager.stop()
         print("Server stopped cleanly.")
 

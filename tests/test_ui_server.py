@@ -51,7 +51,7 @@ def test_ui_server_index_html(running_server):
     code, data, headers = _http_get(f"{running_server}/")
     assert code == 200
     text = data.decode("utf-8")
-    assert "Google PWA Studio" in text
+    assert "PWA Studio" in text
     assert "html" in headers.get("Content-Type", "")
 
 

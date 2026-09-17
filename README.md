@@ -1,6 +1,6 @@
-# Google PWA Studio & Manifest Builder 🚀
+# PWA Manifest Studio & Builder 🚀
 
-A zero-dependency, production-grade Progressive Web App (PWA) manifest generator, ServiceWorker architect, SVG icon forge, Lighthouse installability linter, Model Context Protocol (MCP) server, and Google Material 3 Web Studio UI.
+A zero-dependency, production-grade Progressive Web App (PWA) manifest generator, ServiceWorker architect, SVG icon forge, Lighthouse installability linter, Model Context Protocol (MCP) server, and Material 3 Web Studio UI (design influenced by Material 3 tokens).
 
 **100% Python Standard Library** — zero third-party runtime dependencies. Runs everywhere Python 3.9+ runs (Linux, macOS, Windows, Termux/Android).
 
@@ -12,7 +12,7 @@ A zero-dependency, production-grade Progressive Web App (PWA) manifest generator
 - ⚡ **ServiceWorker Architect**: Synthesizes production-ready JavaScript Service Workers supporting `StaleWhileRevalidate`, `CacheFirst`, `NetworkFirst`, `NetworkOnly`, and `CacheOnly` caching strategies, atomic cache versioning, navigation preload, offline fallback routing, background sync, and push notifications.
 - 🎨 **Pure-Python Icon Forge**: Generates vector SVG icons with 80% safe-zone adaptive maskable padding, standard resolution suites (`16x16` to `1024x1024`), Apple touch icons (`180x180`), and multi-resolution Windows `favicon.ico` binaries with zero imaging dependencies.
 - 🔍 **Lighthouse Installability Linter**: Comprehensive audit scoring engine (0–100) assessing installability rules, maskable icons, scope containment, color safety, and actionable fix recommendations.
-- 📱 **Google Material 3 Studio UI**: Interactive light/dark web studio featuring a Pixel mobile phone frame preview (Install banner bottom sheet, launch splash screen, and Android home screen grid), live tabbed code inspector, and 1-click complete PWA `.zip` bundle export.
+- 📱 **Material 3 Studio UI**: Interactive light/dark web studio (design influenced by Material 3 tokens) featuring a Pixel mobile phone frame preview (Install banner bottom sheet, launch splash screen, and Android home screen grid), live tabbed code inspector, and 1-click complete PWA `.zip` bundle export.
 - 🤖 **Model Context Protocol (MCP) Server**: Native JSON-RPC 2.0 stdio server seamlessly exposing tools to Claude Desktop, Cursor, Cline, Roo Code, and AI agents.
 - 📦 **14+ Built-in Application Templates**: Instant blueprints for E-Commerce, SaaS Dashboards, News Readers, Offline Notebooks, Media Players, Developer Tools, Fullscreen Canvas Games, and AI Assistants.
 
@@ -24,7 +24,7 @@ A zero-dependency, production-grade Progressive Web App (PWA) manifest generator
 flowchart TD
     subgraph Inputs["1. Input Interfaces"]
         CLI["CLI Commands<br/>(pwa-manifest-builder)"]
-        UI["Google Material 3 Studio UI<br/>(http://localhost:8080)"]
+        UI["Material 3 Studio UI<br/>(http://localhost:8080)"]
         MCP["MCP Protocol Server<br/>(stdio JSON-RPC 2.0)"]
         PY["Python Library API<br/>(import pwa_manifest_builder)"]
     end
@@ -77,7 +77,7 @@ cd pwa-manifest-builder
 pip install -e .
 ```
 
-### Launch Google Material 3 Studio UI
+### Launch Material 3 Studio UI
 
 ```bash
 pwa-manifest-builder serve --port 8080 --open
@@ -87,7 +87,7 @@ Open `http://localhost:8080` in your browser to design and preview your Progress
 
 ---
 
-## 📱 Google Material 3 Studio UI
+## 📱 Material 3 Studio UI (Design Influenced by Material 3)
 
 The web studio (`/public/index.html` or served via `pwa-manifest-builder serve`) provides an interactive 3-column cockpit:
 
