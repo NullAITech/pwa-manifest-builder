@@ -1,0 +1,33 @@
+{
+  "name": "pwa-manifest-builder",
+  "version": "2.0.0",
+  "description": "Zero-Dependency Progressive Web App (PWA) Manifest Studio, ServiceWorker Architect & Icon Forge — Desktop Workstation",
+  "main": "electron/main.cjs",
+  "bin": {
+    "pwa-builder": "./bin/pwa-builder.js",
+    "pwa-manifest-builder": "./bin/pwa-builder.js"
+  },
+  "scripts": {
+    "start": "python3 -m pwa_manifest_builder.cli serve --port 8088",
+    "electron": "electron .",
+    "app": "electron .",
+    "test": "pytest tests/"
+  },
+  "keywords": [
+    "pwa",
+    "manifest",
+    "serviceworker",
+    "icon-forge",
+    "shortcuts",
+    "offline-first",
+    "zero-egress",
+    "sovereign",
+    "electron",
+    "zoth"
+  ],
+  "author": "NullAI Tech / Zoth Team",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^34.5.8"
+  }
+}

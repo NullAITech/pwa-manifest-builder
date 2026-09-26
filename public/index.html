@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -680,6 +680,8 @@
   </style>
 </head>
 <body>
+<div class="zoth-brand-bar"><span class="zoth-z">Z</span><span class="zoth-name">Zoth Studio</span><span class="zoth-tool">PWAManifest Builder</span><span class="zoth-spacer"></span><span class="zoth-badge">NULLAI · SOVEREIGN</span></div>
+
 
   <!-- Top Header -->
   <header class="app-header">
@@ -1585,6 +1587,7 @@ self.addEventListener('fetch', (event) => {
     p { color: #5f6368; max-width: 400px; margin-bottom: 24px; }
     button { background: ${m.theme_color}; color: white; border: none; padding: 10px 24px; border-radius: 20px; font-weight: 500; cursor: pointer; }
   </style>
+  <link rel="stylesheet" href="zoth-theme.css">
 </head>
 <body>
   <div class="icon">📡</div>
@@ -1829,5 +1832,6 @@ if ('launchQueue' in window && 'files' in LaunchParams.prototype) {
     // Initial setup
     updateAll();
   </script>
+  <footer class="zoth-brand-footer"><div class="zoth-foot-name">Zoth Studio</div><div>NullAI Tech &middot; Sovereign Local-First AI &middot; <a href="https://github.com/1nc0gn30" target="_blank" rel="noopener">GitHub</a></div></footer>
 </body>
 </html>

@@ -1,0 +1,20 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=PWA Manifest Studio
+GenericName=PWA Architect & ServiceWorker Forge
+Comment=Zero-Dependency Progressive Web App Manifest Studio, ServiceWorker Architect & Icon Forge
+Exec=/usr/local/bin/pwa-builder desktop
+Icon=/media/neo/f2fdda77-178b-4603-ae80-c7aa4cd97908/pwa-manifest-builder/assets/icon.png
+Terminal=false
+Categories=Development;WebDevelopment;System;Utility;
+StartupNotify=true
+Actions=CLI;Web;
+
+[Desktop Action CLI]
+Name=Open PWA Builder CLI
+Exec=x-terminal-emulator -e "/usr/local/bin/pwa-builder --help"
+
+[Desktop Action Web]
+Name=Open Web UI (Port 8088)
+Exec=/usr/local/bin/pwa-builder web
